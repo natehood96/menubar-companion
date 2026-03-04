@@ -4,18 +4,11 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var notificationManager: NotificationManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon (menu bar only)
         NSApp.setActivationPolicy(.accessory)
-
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 480, height: 520)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
-            rootView: PopoverView()
-        )
-        self.popover = popover
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
@@ -26,6 +19,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePopover)
             button.target = self
         }
+
+        notificationManager = NotificationManager(statusItem: statusItem)
+
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 480, height: 520)
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(
+            rootView: PopoverView(notificationManager: notificationManager)
+        )
+        self.popover = popover
     }
 
     @objc private func togglePopover() {

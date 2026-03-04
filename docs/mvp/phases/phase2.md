@@ -133,7 +133,7 @@ Establish the typed event protocol model, upgrade the parser to produce typed ev
 
 ## 4. Subtasks
 
-### Task 1.1 — Define Event Model Types
+### ✅ Task 1.1 — Define Event Model Types
 
 #### User Story
 
@@ -224,7 +224,7 @@ The `type` field selects the enum case. The remaining fields decode into the cor
 
 ---
 
-### Task 1.2 — Upgrade EventParser to Typed Decoding
+### ✅ Task 1.2 — Upgrade EventParser to Typed Decoding
 
 #### User Story
 
@@ -286,7 +286,7 @@ struct EventParser {
 
 ---
 
-### Task 1.3 — Create NotificationManager
+### ✅ Task 1.3 — Create NotificationManager
 
 #### User Story
 
@@ -347,7 +347,7 @@ final class NotificationManager {
 
 ---
 
-### Task 1.4 — Implement ToastWindow and ToastView
+### ✅ Task 1.4 — Implement ToastWindow and ToastView
 
 #### User Story
 
@@ -492,7 +492,7 @@ private func showToast(_ payload: ToastPayload) {
 
 ---
 
-### Task 1.5 — Wire the Full Pipeline
+### ✅ Task 1.5 — Wire the Full Pipeline
 
 #### User Story
 
@@ -553,7 +553,7 @@ func handleOutputLine(_ line: String) {
 
 ---
 
-### Task 1.6 — Verify Non-Event Lines and Edge Cases
+### ✅ Task 1.6 — Verify Non-Event Lines and Edge Cases
 
 #### User Story
 

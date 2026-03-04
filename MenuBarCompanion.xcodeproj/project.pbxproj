@@ -14,6 +14,10 @@
 		AA000005 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005; };
 		AA000006 /* EventParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006; };
 		AA000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000007; };
+		AA000008 /* EventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011; };
+		AA000009 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012; };
+		AA00000A /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013; };
+		AA00000B /* ToastWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +31,10 @@
 		AB000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB000009 /* MenuBarCompanion.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MenuBarCompanion.entitlements; sourceTree = "<group>"; };
 		AB000010 /* MenuBarCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MenuBarCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB000011 /* EventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventModels.swift; sourceTree = "<group>"; };
+		AB000012 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		AB000013 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		AB000014 /* ToastWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastWindow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +83,8 @@
 			children = (
 				AB000003 /* PopoverView.swift */,
 				AB000004 /* PopoverViewModel.swift */,
+				AB000013 /* ToastView.swift */,
+				AB000014 /* ToastWindow.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -84,6 +94,8 @@
 			children = (
 				AB000005 /* CommandRunner.swift */,
 				AB000006 /* EventParser.swift */,
+				AB000011 /* EventModels.swift */,
+				AB000012 /* NotificationManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -171,6 +183,10 @@
 				AA000004 /* PopoverViewModel.swift in Sources */,
 				AA000005 /* CommandRunner.swift in Sources */,
 				AA000006 /* EventParser.swift in Sources */,
+				AA000008 /* EventModels.swift in Sources */,
+				AA000009 /* NotificationManager.swift in Sources */,
+				AA00000A /* ToastView.swift in Sources */,
+				AA00000B /* ToastWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

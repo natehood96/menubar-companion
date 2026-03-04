@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct PopoverView: View {
-    @StateObject private var viewModel = PopoverViewModel()
+    @StateObject private var viewModel: PopoverViewModel
+
+    init(notificationManager: NotificationManager) {
+        _viewModel = StateObject(wrappedValue: PopoverViewModel(notificationManager: notificationManager))
+    }
 
     var body: some View {
         VStack(spacing: 12) {

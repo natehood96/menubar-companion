@@ -8,8 +8,10 @@ final class PopoverViewModel: ObservableObject {
     @Published var claudeDetected: Bool = false
 
     private var runner: CommandRunner?
+    private let notificationManager: NotificationManager
 
-    init() {
+    init(notificationManager: NotificationManager) {
+        self.notificationManager = notificationManager
         detectClaude()
     }
 
@@ -91,13 +93,12 @@ final class PopoverViewModel: ObservableObject {
     // MARK: - Event Handling
 
     private func handleOutputLine(_ line: String) {
-        let eventPrefix = "[MENUBOT_EVENT]"
-        if line.hasPrefix(eventPrefix) {
-            let payload = String(line.dropFirst(eventPrefix.count)).trimmingCharacters(in: .whitespaces)
-            let parsed = EventParser.parse(payload)
-            output += "[Event received: \(parsed)]\n"
-        } else {
-            output += line + "\n"
+        if let json = EventParser.extractPayload(from: line) {
+            if let event = EventParser.parseEvent(from: json) {
+                notificationManager.handle(event)
+            }
+            return
         }
+        output += line + "\n"
     }
 }
