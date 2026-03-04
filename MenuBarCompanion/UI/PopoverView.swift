@@ -1,16 +1,22 @@
 import SwiftUI
 
 struct PopoverView: View {
-    @StateObject private var viewModel: PopoverViewModel
+    @StateObject private var viewModel: ChatViewModel
     @State private var navigationPath = NavigationPath()
 
     init(notificationManager: NotificationManager) {
-        _viewModel = StateObject(wrappedValue: PopoverViewModel(notificationManager: notificationManager))
+        _viewModel = StateObject(wrappedValue: ChatViewModel(notificationManager: notificationManager))
     }
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            mainContent
+            chatScreen
+                .navigationDestination(for: String.self) { destination in
+                    if destination == "allSkills" {
+                        SkillsListView()
+                            .environmentObject(viewModel)
+                    }
+                }
                 .navigationDestination(for: Skill.self) { skill in
                     SkillDetailView(skill: skill)
                         .environmentObject(viewModel)
@@ -22,153 +28,166 @@ struct PopoverView: View {
         }
     }
 
-    private var mainContent: some View {
-        VStack(spacing: 12) {
+    // MARK: - Chat Screen
+
+    private var chatScreen: some View {
+        VStack(spacing: 0) {
             // Header
-            HStack {
-                Image("MenuBarIcon")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                Text("MenuBar Companion")
-                    .font(.headline)
-                Spacer()
-                statusBadge
-            }
-            .padding(.bottom, 4)
-
-            // Starred Skills
-            if !viewModel.starredSkills.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Starred Skills")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ForEach(viewModel.starredSkills) { skill in
-                        Button {
-                            navigationPath.append(skill)
-                        } label: {
-                            HStack(spacing: 6) {
-                                if let icon = skill.icon {
-                                    Image(systemName: icon)
-                                        .font(.caption)
-                                }
-                                Text(skill.name)
-                                    .font(.subheadline)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(6)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            } else {
-                HStack {
-                    Text("No starred skills yet")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-            }
-
-            // All Skills button
-            Button {
-                navigationPath.append("allSkills")
-            } label: {
-                HStack {
-                    Label("All Skills", systemImage: "square.grid.2x2")
-                    Spacer()
-                    Text("\(viewModel.allSkills.count)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 10)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
-            }
-            .buttonStyle(.plain)
+            header
+                .padding(.horizontal)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
             Divider()
 
-            // Input row
-            HStack(spacing: 8) {
-                TextField("Ask or command…", text: $viewModel.inputText)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { viewModel.run() }
-
-                if viewModel.isRunning {
-                    Button("Cancel") { viewModel.cancel() }
-                        .tint(.red)
-                } else {
-                    Button("Run") { viewModel.run() }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-
-            // Output area
+            // Messages
             ScrollViewReader { proxy in
                 ScrollView {
-                    Text(viewModel.output.isEmpty ? "Output will appear here…" : viewModel.output)
-                        .font(.system(.body, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundColor(viewModel.output.isEmpty ? .secondary : .primary)
-                        .textSelection(.enabled)
-                        .id("output-bottom")
+                    if viewModel.messages.isEmpty {
+                        emptyState
+                            .padding(.top, 60)
+                    } else {
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel.messages) { message in
+                                ChatBubbleView(message: message)
+                                    .id(message.id)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                    }
                 }
-                .onChange(of: viewModel.output) { _ in
-                    proxy.scrollTo("output-bottom", anchor: .bottom)
+                .onChange(of: viewModel.messages.count) { _ in
+                    if let last = viewModel.messages.last {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
                 }
-            }
-            .frame(maxHeight: .infinity)
-            .padding(8)
-            .background(Color(nsColor: .textBackgroundColor))
-            .cornerRadius(6)
-
-            // Toolbar
-            HStack {
-                Button {
-                    viewModel.clearOutput()
-                } label: {
-                    Label("Clear", systemImage: "trash")
-                }
-                .disabled(viewModel.output.isEmpty)
-
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(viewModel.output, forType: .string)
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                .disabled(viewModel.output.isEmpty)
-
-                Spacer()
-
-                if viewModel.isRunning {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Running…")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                .onChange(of: viewModel.messages.last?.content) { _ in
+                    if let last = viewModel.messages.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
                 }
             }
+
+            Divider()
+
+            // Input bar
+            inputBar
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
         }
-        .padding()
-        .navigationDestination(for: String.self) { destination in
-            if destination == "allSkills" {
-                SkillsListView()
-                    .environmentObject(viewModel)
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            Image("MenuBarIcon")
+                .resizable()
+                .frame(width: 18, height: 18)
+            Text("MenuBar Companion")
+                .font(.headline)
+            Spacer()
+
+            // Menu button
+            Menu {
+                Button {
+                    navigationPath.append("allSkills")
+                } label: {
+                    Label("All Skills (\(viewModel.allSkills.count))", systemImage: "square.grid.2x2")
+                }
+
+                if !viewModel.starredSkills.isEmpty {
+                    Menu("Starred Skills") {
+                        ForEach(viewModel.starredSkills) { skill in
+                            Button {
+                                navigationPath.append(skill)
+                            } label: {
+                                Label(skill.name, systemImage: skill.icon ?? "star.fill")
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    viewModel.clearHistory()
+                } label: {
+                    Label("Clear Chat", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            statusBadge
+        }
+    }
+
+    // MARK: - Input Bar
+
+    private var inputBar: some View {
+        HStack(spacing: 8) {
+            TextField("Message...", text: $viewModel.inputText, axis: .vertical)
+                .textFieldStyle(.plain)
+                .lineLimit(1...4)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .onSubmit { viewModel.sendMessage() }
+
+            if viewModel.isRunning {
+                Button {
+                    viewModel.cancel()
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    viewModel.sendMessage()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(
+                            viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                                ? .secondary : .accentColor
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
     }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image("MenuBarIcon")
+                .resizable()
+                .frame(width: 40, height: 40)
+                .opacity(0.5)
+            Text("What can I help with?")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("Type a message or run a skill from the menu.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    // MARK: - Status Badge
 
     @ViewBuilder
     private var statusBadge: some View {

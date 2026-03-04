@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SkillsListView: View {
-    @EnvironmentObject var viewModel: PopoverViewModel
+    @EnvironmentObject var viewModel: ChatViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

@@ -24,6 +24,9 @@
 		AA00000F /* SkillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
 		AA000020 /* bridge-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001A; };
 		AA000021 /* sample-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001B; };
+		AA000030 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030; };
+		AA000031 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000031; };
+		AA000032 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000032; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +50,9 @@
 		AB000018 /* SkillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillDetailView.swift; sourceTree = "<group>"; };
 		AB00001A /* bridge-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "bridge-skill"; sourceTree = "<group>"; };
 		AB00001B /* sample-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "sample-skill"; sourceTree = "<group>"; };
+		AB000030 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		AB000031 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		AB000032 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +106,8 @@
 				AB000014 /* ToastWindow.swift */,
 				AB000017 /* SkillsListView.swift */,
 				AB000018 /* SkillDetailView.swift */,
+				AB000031 /* ChatViewModel.swift */,
+				AB000032 /* ChatBubbleView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -113,6 +121,7 @@
 				AB000012 /* NotificationManager.swift */,
 				AB000015 /* Skill.swift */,
 				AB000016 /* SkillsDirectoryManager.swift */,
+				AB000030 /* ChatMessage.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -219,6 +228,9 @@
 				AA00000D /* SkillsDirectoryManager.swift in Sources */,
 				AA00000E /* SkillsListView.swift in Sources */,
 				AA00000F /* SkillDetailView.swift in Sources */,
+				AA000030 /* ChatMessage.swift in Sources */,
+				AA000031 /* ChatViewModel.swift in Sources */,
+				AA000032 /* ChatBubbleView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

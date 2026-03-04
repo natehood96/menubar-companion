@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SkillDetailView: View {
     let skill: Skill
-    @EnvironmentObject var viewModel: PopoverViewModel
+    @EnvironmentObject var viewModel: ChatViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var extraInstructions: String = ""
 

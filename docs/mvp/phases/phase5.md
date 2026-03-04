@@ -34,7 +34,7 @@
 ## Quick Context for AI Agent
 
 - **What this phase accomplishes:** Adds safety guardrails (confirmation dialogs, stop/cancel), a persistence layer for all user state, an activity log of recent skill runs, and icon customization from presets. This is the final objective — after this the MVP is complete.
-- **What already exists from previous phases:** A working menu bar app shell (Phase 1), event protocol with toast rendering (Phase 2), skills directory with browse/star/run UI (Phase 3), context injection, preinstalled skills, and scheduling (Phase 4). Skills can be discovered, browsed, starred, and executed. Context (time, active app, clipboard, screenshots) is injected into skill runs. Scheduling runs skills on a recurring basis.
+- **What already exists from previous phases:** A working menu bar app shell (Phase 1), event protocol with toast rendering (Phase 2), skills directory with browse/star/run UI (Phase 3), context injection, preinstalled skills, and scheduling (Phase 4). **The home screen is a chat-based UI** (`ChatViewModel` + `ChatView` + `ChatBubbleView`) with persistent message history. Skills browser and other views are accessible via a navigation menu. All command output streams into chat message bubbles. Scheduled skill results also appear as chat messages.
 - **What future phases depend on this:** None — this is the final objective. After this phase, the MVP is feature-complete.
 
 ---
@@ -46,7 +46,7 @@
 **Where it fits:** This is the final layer of the MVP. Phases 1–4 built the execution engine, event protocol, skills system, and context/scheduling. Phase 5 wraps everything with safety, observability, persistence, and personalization. It transforms the app from a functional prototype into something safe and polished enough to ship.
 
 **Data flow:**
-1. User clicks a skill → `PopoverViewModel` checks skill metadata for `safe_to_auto_run` → if false, presents `ConfirmationView` → user confirms or cancels
+1. User clicks a skill → `ChatViewModel` checks skill metadata for `safe_to_auto_run` → if false, presents `ConfirmationView` → user confirms or cancels
 2. Skill executes → `CommandRunner` runs process → Stop button can send SIGTERM/SIGKILL to terminate early
 3. On completion (success/failure/cancel), a `RunRecord` is written to `PersistenceManager` → stored as JSON in `~/Library/Application Support/MenuBot/`
 4. Activity log reads from `PersistenceManager` and displays recent runs
@@ -74,7 +74,7 @@ Make the app safe (confirmation dialogs, stop button), observable (activity log)
 - Skills directory exists at `~/Library/Application Support/MenuBot/skills/`
 - Skill metadata spec supports name, description, and tags
 - `CommandRunner` can execute processes and stream output
-- `PopoverViewModel` orchestrates skill execution
+- `ChatViewModel` orchestrates skill execution
 - `AppDelegate` manages the `NSStatusItem` and popover
 - Starring UI exists from Phase 3 (but is in-memory only)
 - Scheduling settings exist from Phase 4 (but are in-memory only)
@@ -241,19 +241,19 @@ As a user, when I click to run a skill that could have side effects, I should se
 
 #### Implementation Steps
 
-1. In `PopoverViewModel`, locate the method that initiates skill execution (e.g., `runSkill(_:)`)
+1. In `ChatViewModel`, locate the method that initiates skill execution (e.g., `runSkill(_:)`)
 2. Before calling `CommandRunner`, check the skill's `safeToAutoRun` property
 3. If `safeToAutoRun == true`, execute immediately
 4. If `safeToAutoRun == false` (or not set), set a `@Published` state to present the `ConfirmationView`
-5. Add `@Published var showConfirmation = false` and `@Published var pendingSkill: Skill?` to `PopoverViewModel`
-6. In the popover view hierarchy, attach `.sheet(isPresented: $viewModel.showConfirmation)` presenting the `ConfirmationView`
+5. Add `@Published var showConfirmation = false` and `@Published var pendingSkill: Skill?` to `ChatViewModel`
+6. In `PopoverView`, attach `.sheet(isPresented: $viewModel.showConfirmation)` presenting the `ConfirmationView` (or render it inline as a system message in the chat with Confirm/Cancel buttons)
 7. On confirm, call the actual execution method; on cancel, clear `pendingSkill`
 
 #### Files Created / Modified
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverViewModel.swift` | Modify | Add confirmation gating logic, `showConfirmation` and `pendingSkill` state |
+| `MenuBarCompanion/UI/ChatViewModel.swift` | Modify | Add confirmation gating logic, `showConfirmation` and `pendingSkill` state |
 | `MenuBarCompanion/UI/PopoverView.swift` | Modify | Attach `.sheet` for `ConfirmationView` |
 
 #### Acceptance Criteria
@@ -274,8 +274,8 @@ As a user, I want to stop a running skill that is taking too long or that I trig
 
 #### Implementation Steps
 
-1. In the running-skill output view (within `PopoverView`), add a visible "Stop" button that appears only while a skill is actively running
-2. Add `@Published var isRunning = false` to `PopoverViewModel` if not already present
+1. In the chat input bar (within `PopoverView`), the Stop button already replaces the Send button while a skill is running. Ensure it is clearly visible and styled as a red stop icon
+2. Add `@Published var isRunning = false` to `ChatViewModel` if not already present
 3. The Stop button calls `viewModel.stopCurrentSkill()`
 4. `stopCurrentSkill()` calls `commandRunner.stop()` (implemented in 5A.5)
 5. After stopping, update the UI to show a "Cancelled" state indicator
@@ -286,7 +286,7 @@ As a user, I want to stop a running skill that is taking too long or that I trig
 | File | Action | Description |
 |------|--------|-------------|
 | `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add Stop button in the running-skill area |
-| `MenuBarCompanion/UI/PopoverViewModel.swift` | Modify | Add `stopCurrentSkill()`, `isRunning`, `lastRunOutcome` |
+| `MenuBarCompanion/UI/ChatViewModel.swift` | Modify | Add `stopCurrentSkill()`, `isRunning`, `lastRunOutcome` |
 
 #### Acceptance Criteria
 
@@ -499,7 +499,7 @@ enum RunOutcome: String, Codable {
 }
 ```
 
-3. Ensure `RunOutcome` is also used by `PopoverViewModel` (from 5A.4) for UI state
+3. Ensure `RunOutcome` is also used by `ChatViewModel` (from 5A.4) for UI state
 
 #### Files Created / Modified
 
@@ -580,7 +580,7 @@ As the system, I need to automatically record every skill execution in the activ
 
 #### Implementation Steps
 
-1. In `PopoverViewModel`, at the point where skill execution completes:
+1. In `ChatViewModel`, at the point where skill execution completes:
    - Capture the start time when execution begins
    - On completion, calculate duration
    - Determine outcome (success/failure from exit code, cancelled from stop action)
@@ -606,7 +606,7 @@ As the system, I need to automatically record every skill execution in the activ
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverViewModel.swift` | Modify | Record `RunRecord` on every skill completion |
+| `MenuBarCompanion/UI/ChatViewModel.swift` | Modify | Record `RunRecord` on every skill completion |
 | `MenuBarCompanion/Core/PersistenceManager.swift` | Modify | Add `appendRunRecord(_:)` convenience method |
 
 #### Acceptance Criteria
@@ -626,23 +626,27 @@ As a user, I want to easily access the activity log from the main popover.
 
 #### Implementation Steps
 
-1. In `PopoverView`, add a navigation element to reach `ActivityLogView`:
-   - Option A: A "Recent" tab if using a tab-based layout
-   - Option B: A small clock/history icon button in the popover header
-   - Option C: A "Recent Runs" row in a settings/more menu
-2. Choose the approach that best fits the existing popover layout
-3. Wire the navigation to present `ActivityLogView`
+1. Add an "Activity Log" item to the navigation menu (hamburger menu in chat header of `PopoverView`):
+   ```swift
+   Button {
+       navigationPath.append("activityLog")
+   } label: {
+       Label("Activity Log", systemImage: "clock.arrow.circlepath")
+   }
+   ```
+2. Add a `.navigationDestination(for:)` case for `"activityLog"` that presents `ActivityLogView`
+3. Note: The chat history itself serves as a natural activity log (the user can scroll up to see past runs), but the dedicated `ActivityLogView` provides a filtered, structured view of skill runs with outcome badges and durations
 
 #### Files Created / Modified
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add navigation to `ActivityLogView` |
+| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add "Activity Log" to navigation menu in chat header |
 
 #### Acceptance Criteria
 
-- [ ] User can reach the activity log from the main popover with one tap
-- [ ] Navigation is discoverable and consistent with the existing UI style
+- [ ] User can reach the activity log from the navigation menu with one tap
+- [ ] Navigation is discoverable and consistent with the chat-based UI style
 
 ---
 
@@ -663,9 +667,9 @@ As a user, I want my starred skills, skill ordering, and scheduling settings to 
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverViewModel.swift` (or skills view model) | Modify | Read/write starred skills via `PersistenceManager` |
-| `MenuBarCompanion/UI/PopoverViewModel.swift` (or skills view model) | Modify | Read/write skill ordering via `PersistenceManager` |
-| `MenuBarCompanion/UI/PopoverViewModel.swift` (or scheduling view model) | Modify | Read/write scheduling settings via `PersistenceManager` |
+| `MenuBarCompanion/UI/ChatViewModel.swift` (or skills view model) | Modify | Read/write starred skills via `PersistenceManager` |
+| `MenuBarCompanion/UI/ChatViewModel.swift` (or skills view model) | Modify | Read/write skill ordering via `PersistenceManager` |
+| `MenuBarCompanion/UI/ChatViewModel.swift` (or scheduling view model) | Modify | Read/write scheduling settings via `PersistenceManager` |
 | `MenuBarCompanion/App/AppDelegate.swift` | Modify | Load persisted state on launch |
 
 #### Acceptance Criteria
@@ -681,7 +685,7 @@ As a user, I want my starred skills, skill ordering, and scheduling settings to 
 
 #### User Story
 
-As the system, I need to prevent the activity log from growing unbounded by capping it at a reasonable size.
+As the system, I need to prevent the activity log and chat history from growing unbounded by capping them at a reasonable size.
 
 #### Implementation Steps
 
@@ -710,8 +714,9 @@ func appendRunRecord(_ record: RunRecord) {
 #### Acceptance Criteria
 
 - [ ] Run history never exceeds 100 records
+- [ ] Chat message history is capped at 200 messages (already implemented in `ChatStore.save()`)
 - [ ] Oldest records are pruned first
-- [ ] Pruning happens automatically on append
+- [ ] Pruning happens automatically on append/save
 
 ---
 
@@ -878,7 +883,7 @@ As the system, I need to save the user's icon choice so it persists across app r
 
 #### Implementation Steps
 
-1. In the view model managing settings (or `PopoverViewModel`), when the icon selection changes:
+1. In the view model managing settings (or `ChatViewModel`), when the icon selection changes:
    ```swift
    PersistenceManager.shared.selectedIcon = newIconID
    ```
@@ -892,7 +897,7 @@ As the system, I need to save the user's icon choice so it persists across app r
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverViewModel.swift` (or settings view model) | Modify | Read/write icon preference via `PersistenceManager` |
+| `MenuBarCompanion/UI/ChatViewModel.swift` (or settings view model) | Modify | Read/write icon preference via `PersistenceManager` |
 
 #### Acceptance Criteria
 
@@ -1061,17 +1066,18 @@ Backward compatibility is not a concern for this phase. This is the final MVP ob
 - [ ] **Build verification:** App builds with zero errors and zero warnings related to Phase 5 code
 - [ ] **Safety flow:** Run an unsafe skill → confirmation dialog appears → Cancel works → Confirm runs the skill
 - [ ] **Safe skill bypass:** Run a safe skill → executes immediately, no dialog
-- [ ] **Stop button:** Run a long skill → click Stop → process terminates → UI shows "Cancelled"
-- [ ] **Activity log:** Open activity log → shows recent runs with correct outcomes (success/failure/cancelled)
+- [ ] **Stop button:** Run a long skill → click Stop (red stop icon in chat input bar) → process terminates → assistant message shows "[cancelled]"
+- [ ] **Activity log:** Open activity log from navigation menu → shows recent runs with correct outcomes (success/failure/cancelled)
+- [ ] **Chat history:** Run several commands → close and reopen popover → chat messages are preserved
 - [ ] **Persistence — stars:** Star skills → restart app → stars preserved
 - [ ] **Persistence — ordering:** Reorder skills → restart app → ordering preserved
 - [ ] **Persistence — schedules:** Set schedule → restart app → schedule preserved
-- [ ] **Persistence — history:** Run skills → restart app → activity log preserved
+- [ ] **Persistence — history:** Run skills → restart app → activity log and chat history preserved
 - [ ] **Persistence — icon:** Change icon → restart app → icon preserved
 - [ ] **Icon picker:** Open settings → at least 4 icon presets → select one → menu bar updates live
-- [ ] **First launch:** Delete all persisted data → launch app → default icon, empty log, no stars, no schedules
+- [ ] **First launch:** Delete all persisted data → launch app → default icon, empty chat, no stars, no schedules
 - [ ] **Light/dark mode:** Icons render correctly in both appearances
-- [ ] **No regressions:** Skills browse, star, run, event protocol, toasts, streaming output, context injection, scheduling all work as before
+- [ ] **No regressions:** Chat UI, skills browse, star, run, event protocol, toasts, streaming output in chat bubbles, context injection, scheduling all work as before
 - [ ] **History pruning:** Verify history caps at 100 records
 
 **Signoff:** _______________  Date: _______________

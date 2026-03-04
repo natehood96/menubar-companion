@@ -33,7 +33,7 @@
 ## Quick Context for AI Agent
 
 - **What this phase accomplishes:** Adds structured context injection to every CLI run, seeds the app with preinstalled skills on first launch, and enables recurring skill scheduling with notification delivery.
-- **What already exists from previous phases:** Menu bar app with popover (Phase 1), event protocol with toast rendering (Phase 2), skills directory with directory-per-skill format (`skill.json` metadata + `prompt.md` template), browse/star/run UI, and skill execution via CommandRunner (Phase 3 + 3.5).
+- **What already exists from previous phases:** Menu bar app with popover (Phase 1), event protocol with toast rendering (Phase 2), skills directory with directory-per-skill format (`skill.json` metadata + `prompt.md` template), browse/star/run UI, and skill execution via CommandRunner (Phase 3 + 3.5). **Chat-based UI** replaces the old input/output split — the home screen is now a persistent chat thread (`ChatViewModel` + `ChatView`), with skills and other views accessible via a navigation menu.
 - **What future phases depend on this:** Phase 5 (activity log will track scheduled runs; safety confirmations apply to context-sensitive operations).
 
 ---
@@ -63,7 +63,7 @@ Every skill run includes structured context, the app ships with useful preinstal
 
 - Phase 1 complete: menu bar app, popover, CommandRunner, CLI execution
 - Phase 2 complete: event protocol, EventParser, toast rendering
-- Phase 3 + 3.5 complete: skills directory (`~/Library/Application Support/MenuBot/skills/`) using directory-per-skill format (`skill.json` metadata + `prompt.md` template), `Skill` model with `SkillMetadata` Codable, `SkillsDirectoryManager` scanning subdirectories, browse/star/run UI, skill execution via `PopoverViewModel`
+- Phase 3 + 3.5 complete: skills directory (`~/Library/Application Support/MenuBot/skills/`) using directory-per-skill format (`skill.json` metadata + `prompt.md` template), `Skill` model with `SkillMetadata` Codable, `SkillsDirectoryManager` scanning subdirectories, browse/star/run UI, skill execution via `ChatViewModel`
 - App sandbox disabled (required for process execution and file system access)
 
 ### Key Deliverables
@@ -245,7 +245,7 @@ As the system, I append the serialized context payload to every CLI invocation s
 
 #### Implementation Steps
 
-1. Modify `PopoverViewModel` to instantiate `ContextProvider` (or inject as dependency)
+1. Modify `ChatViewModel` to instantiate `ContextProvider` (or inject as dependency)
 2. Before calling `CommandRunner`, collect context:
    ```swift
    let context = contextProvider.collectFullContext(
@@ -270,7 +270,7 @@ As the system, I append the serialized context payload to every CLI invocation s
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/PopoverViewModel.swift` | Modify | Integrate ContextProvider into run flow |
+| `MenuBarCompanion/UI/ChatViewModel.swift` | Modify | Integrate ContextProvider into run flow |
 | `MenuBarCompanion/Core/UserSettings.swift` | Create | User settings model for context toggles |
 | `MenuBarCompanion/Core/CommandRunner.swift` | Modify | Accept context-augmented prompt (if interface change needed) |
 
@@ -307,7 +307,7 @@ As the system, I replace template variables in skill prompts (`{context.time}`, 
    - `{context.screenshot}` → base64 string or `"[screenshot not available]"`
    - `{extra_instructions}` → user-provided text or `""`
 3. Strip any remaining unsubstituted `{context.*}` variables (defensive cleanup)
-4. Wire into skill execution path in `PopoverViewModel.runSkill()`:
+4. Wire into skill execution path in `ChatViewModel.runSkill()`:
    - Collect context → substitute variables → append remaining context block → execute
 5. Write unit tests:
    - All variables substituted correctly
@@ -320,7 +320,7 @@ As the system, I replace template variables in skill prompts (`{context.time}`, 
 | File | Action | Description |
 |------|--------|-------------|
 | `MenuBarCompanion/Core/TemplateEngine.swift` | Create | Template variable substitution logic |
-| `MenuBarCompanion/UI/PopoverViewModel.swift` | Modify | Wire template substitution into skill execution |
+| `MenuBarCompanion/UI/ChatViewModel.swift` | Modify | Wire template substitution into skill execution |
 | `MenuBarCompanionTests/TemplateEngineTests.swift` | Create | Unit tests for template substitution |
 
 #### Acceptance Criteria
@@ -545,15 +545,18 @@ As a user, I can enable or disable optional context (clipboard, screenshot) befo
 
 #### Implementation Steps
 
-1. Add a context settings section to the skill run screen (`SkillDetailView` or a shared component):
+1. Add context attachment icons to the chat input bar (like attaching a photo in iMessage):
    ```swift
-   DisclosureGroup("Context Options") {
-       Toggle("Include Clipboard", isOn: $viewModel.clipboardEnabled)
-       Toggle("Include Screenshot", isOn: $viewModel.screenshotEnabled)
-       // Default context (time, active app) shown as non-toggleable info
-       Text("Always included: current time, active app")
-           .font(.caption)
-           .foregroundColor(.secondary)
+   // In the chat input bar (PopoverView.swift inputBar section)
+   HStack(spacing: 4) {
+       Button { viewModel.clipboardEnabled.toggle() } label: {
+           Image(systemName: viewModel.clipboardEnabled ? "doc.on.clipboard.fill" : "doc.on.clipboard")
+               .foregroundStyle(viewModel.clipboardEnabled ? .accentColor : .secondary)
+       }
+       Button { viewModel.screenshotEnabled.toggle() } label: {
+           Image(systemName: viewModel.screenshotEnabled ? "camera.fill" : "camera")
+               .foregroundStyle(viewModel.screenshotEnabled ? .accentColor : .secondary)
+       }
    }
    ```
 2. Bind toggles to `UserSettings` via the view model
@@ -561,21 +564,20 @@ As a user, I can enable or disable optional context (clipboard, screenshot) befo
    - Green checkmark if Screen Recording permission granted
    - Warning icon with "Permission required" if not granted
    - Tapping opens System Settings to the Privacy pane
-4. Apply the same context toggles to free-form command execution (add to popover main view)
+4. Context toggles are global (apply to both free-form chat messages and skill runs) since they live on the chat input bar
 
 #### Files Created / Modified
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/UI/ContextToggleView.swift` | Create | Reusable context toggle component |
-| `MenuBarCompanion/UI/SkillDetailView.swift` | Modify | Embed context toggles in skill run screen |
-| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add context toggles to free-form command area |
+| `MenuBarCompanion/UI/ContextToggleView.swift` | Create | Reusable context toggle component (attachment-style icons) |
+| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Embed context attachment icons in chat input bar |
 
 #### Acceptance Criteria
 
-- [ ] Context toggle section appears on the skill run screen
+- [ ] Context attachment icons appear in the chat input bar
 - [ ] Clipboard and screenshot toggles are independently controllable
-- [ ] Default context is labeled as always-on with no toggle
+- [ ] Default context (time, active app) is always included — no toggle needed
 - [ ] Permission status is visible next to screenshot toggle
 - [ ] Toggle states persist via UserSettings/UserDefaults
 
@@ -727,7 +729,7 @@ As the system, I check for pending schedules on a timer and execute skills when 
    - Allow a window (e.g., ±2 minutes) to handle slight timer drift
 3. Implement `fireSchedule()`:
    - Mark `lastRunDate = Date()` and save
-   - Trigger skill execution (delegate to `PopoverViewModel` or a shared `SkillExecutor`)
+   - Trigger skill execution (delegate to `ChatViewModel` or a shared `SkillExecutor`)
 4. Handle wake-from-sleep:
    - Subscribe to `NSWorkspace.willSleepNotification` / `didWakeNotification`
    - On wake, immediately run `checkPendingSchedules()` to catch missed schedules
@@ -760,7 +762,7 @@ As a user, I receive a macOS notification when a scheduled skill finishes runnin
 #### Implementation Steps
 
 1. Create a skill execution method that doesn't require the popover:
-   - Extract execution logic from `PopoverViewModel` into a shared `SkillExecutor` (or call into existing `CommandRunner` directly)
+   - Extract execution logic from `ChatViewModel` into a shared `SkillExecutor` (or call into existing `CommandRunner` directly)
    - Collect context via `ContextProvider`, substitute template variables, invoke CLI
    - Capture the final output/result text
 2. Set up `UNUserNotificationCenter`:
@@ -807,7 +809,8 @@ As a user, I receive a macOS notification when a scheduled skill finishes runnin
 #### Acceptance Criteria
 
 - [ ] Scheduled skills execute without the popover being open
-- [ ] macOS notification is delivered with skill name and result summary
+- [ ] Scheduled skill results are appended to the chat history as assistant messages (so the user sees them when they next open the popover)
+- [ ] macOS notification is delivered with skill name and result summary (secondary notification in case popover is closed)
 - [ ] Notification permission is requested before first delivery
 - [ ] Overlapping scheduled runs of the same skill are prevented
 - [ ] Execution uses the same context injection and template substitution as manual runs
@@ -844,7 +847,7 @@ As a user, I can schedule a skill from its detail view by choosing a time and en
    - Enable → create `ScheduleEntry`
    - Disable → remove or set `enabled = false`
    - Time/interval change → update entry
-3. Add a "Schedules" section to settings or popover showing all active schedules:
+3. Add a "Schedules" view accessible from the navigation menu (hamburger menu in chat header):
    ```swift
    ForEach(scheduleManager.schedules.filter(\.enabled)) { entry in
        HStack {
@@ -863,7 +866,7 @@ As a user, I can schedule a skill from its detail view by choosing a time and en
 |------|--------|-------------|
 | `MenuBarCompanion/UI/SkillDetailView.swift` | Modify | Add schedule section with time picker |
 | `MenuBarCompanion/UI/SchedulesOverviewView.swift` | Create | Active schedules list view |
-| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add navigation to schedules overview |
+| `MenuBarCompanion/UI/PopoverView.swift` | Modify | Add "Schedules" menu item to navigation menu in chat header |
 
 #### Acceptance Criteria
 
@@ -979,11 +982,11 @@ No backward compatibility concerns — this phase adds new systems (context, see
 **STOP. Do not proceed to Phase 5 until all items are verified:**
 
 - [ ] **Build verification:** Project compiles with zero errors and zero warnings related to Phase 4 code
-- [ ] **Context test:** Run a free-form command → verify the output CLI invocation includes `--- CONTEXT ---` block with current time and active app
-- [ ] **Optional context test:** Enable clipboard toggle → copy text → run skill → verify clipboard appears in context block
+- [ ] **Context test:** Send a chat message → verify the CLI invocation includes `--- CONTEXT ---` block with current time and active app
+- [ ] **Optional context test:** Tap clipboard attachment icon in chat input bar → copy text → send message → verify clipboard appears in context block
 - [ ] **Seeding test:** Delete `~/Library/Application Support/MenuBot/skills/` → relaunch app → verify 3+ skill directories appear (each with `skill.json` + `prompt.md`)
 - [ ] **Template test:** Run Morning Brief → verify `{context.time}` and `{context.active_app}` are replaced with actual values from the `prompt.md` template in the CLI call
-- [ ] **Schedule test:** Schedule Morning Brief for 1 minute from now → wait → verify it executes and notification appears
+- [ ] **Schedule test:** Schedule Morning Brief for 1 minute from now → wait → verify it executes, result appears as a chat message, and macOS notification appears
 - [ ] **Permission test:** Revoke Screen Recording permission → enable screenshot toggle → run skill → verify graceful degradation (no crash, screenshot not included)
 - [ ] **Persistence test:** Set schedules and toggles → quit and relaunch → verify all settings preserved
 - [ ] **Launch at Login test:** Enable toggle → verify app appears in System Settings > Login Items
