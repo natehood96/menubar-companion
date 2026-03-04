@@ -1,12 +1,9 @@
 import Foundation
 
-struct Skill: Codable, Identifiable, Equatable {
-    // Required fields
+struct Skill: Identifiable, Equatable {
+    // Metadata (from skill.json)
     let name: String
     let description: String
-    let prompt: String
-
-    // Optional fields
     let category: String?
     let tags: [String]?
     let icon: String?
@@ -14,13 +11,29 @@ struct Skill: Codable, Identifiable, Equatable {
     let requiredPermissions: [String]?
     let system: Bool?
 
-    // Runtime properties (not from file)
-    var id: String { filePath ?? name }
-    var filePath: String?
+    // Prompt template (from prompt.md)
+    var prompt: String
+
+    // Runtime properties
+    var id: String { directoryName ?? name }
+    var directoryName: String?
     var isStarred: Bool = false
+}
+
+// MARK: - JSON Metadata Decoding
+
+struct SkillMetadata: Codable {
+    let name: String
+    let description: String
+    let category: String?
+    let tags: [String]?
+    let icon: String?
+    let suggestedSchedule: String?
+    let requiredPermissions: [String]?
+    let system: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case name, description, prompt, category, tags, icon
+        case name, description, category, tags, icon
         case suggestedSchedule = "suggested_schedule"
         case requiredPermissions = "required_permissions"
         case system
@@ -53,13 +66,31 @@ extension Skill {
     }
 }
 
-// MARK: - File Loading
+// MARK: - Directory Loading
 
 extension Skill {
-    static func load(from url: URL) throws -> Skill {
-        let data = try Data(contentsOf: url)
-        var skill = try JSONDecoder().decode(Skill.self, from: data)
-        skill.filePath = url.lastPathComponent
+    /// Load a skill from a directory containing skill.json and prompt.md
+    static func load(from directoryURL: URL) throws -> Skill {
+        let metadataURL = directoryURL.appendingPathComponent("skill.json")
+        let promptURL = directoryURL.appendingPathComponent("prompt.md")
+
+        let metadataData = try Data(contentsOf: metadataURL)
+        let metadata = try JSONDecoder().decode(SkillMetadata.self, from: metadataData)
+
+        let prompt = try String(contentsOf: promptURL, encoding: .utf8)
+
+        var skill = Skill(
+            name: metadata.name,
+            description: metadata.description,
+            category: metadata.category,
+            tags: metadata.tags,
+            icon: metadata.icon,
+            suggestedSchedule: metadata.suggestedSchedule,
+            requiredPermissions: metadata.requiredPermissions,
+            system: metadata.system,
+            prompt: prompt
+        )
+        skill.directoryName = directoryURL.lastPathComponent
         return skill
     }
 }

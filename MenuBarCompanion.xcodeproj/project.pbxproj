@@ -22,7 +22,8 @@
 		AA00000D /* SkillsDirectoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016; };
 		AA00000E /* SkillsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017; };
 		AA00000F /* SkillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
-		AA000010 /* bridge-skill.json in Resources */ = {isa = PBXBuildFile; fileRef = AB000019; };
+		AA000020 /* bridge-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001A; };
+		AA000021 /* sample-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001B; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,7 +45,8 @@
 		AB000016 /* SkillsDirectoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsDirectoryManager.swift; sourceTree = "<group>"; };
 		AB000017 /* SkillsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsListView.swift; sourceTree = "<group>"; };
 		AB000018 /* SkillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillDetailView.swift; sourceTree = "<group>"; };
-		AB000019 /* bridge-skill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bridge-skill.json"; sourceTree = "<group>"; };
+		AB00001A /* bridge-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "bridge-skill"; sourceTree = "<group>"; };
+		AB00001B /* sample-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "sample-skill"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,7 +120,8 @@
 		AD000007 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				AB000019 /* bridge-skill.json */,
+				AB00001A /* bridge-skill */,
+				AB00001B /* sample-skill */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -190,7 +193,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000007 /* Assets.xcassets in Resources */,
-				AA000010 /* bridge-skill.json in Resources */,
+				AA000020 /* bridge-skill in Resources */,
+				AA000021 /* sample-skill in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

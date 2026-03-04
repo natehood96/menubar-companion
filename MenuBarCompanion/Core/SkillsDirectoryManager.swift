@@ -15,7 +15,9 @@ class SkillsDirectoryManager: ObservableObject {
 
     init() {
         ensureDirectoryExists()
+        cleanupLegacyFiles()
         ensureBridgeSkillExists()
+        ensureSampleSkillExists()
         scan()
         startWatching()
     }
@@ -33,22 +35,26 @@ class SkillsDirectoryManager: ObservableObject {
 
     func scan() {
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(
+        guard let contents = try? fm.contentsOfDirectory(
             at: Self.skillsDirectoryURL,
-            includingPropertiesForKeys: nil,
+            includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else {
             skills = []
             return
         }
 
-        let parsed = files
-            .filter { $0.pathExtension == "json" }
-            .compactMap { url -> Skill? in
+        let parsed = contents
+            .filter { url in
+                var isDir: ObjCBool = false
+                fm.fileExists(atPath: url.path, isDirectory: &isDir)
+                return isDir.boolValue
+            }
+            .compactMap { dirURL -> Skill? in
                 do {
-                    return try Skill.load(from: url)
+                    return try Skill.load(from: dirURL)
                 } catch {
-                    print("[SkillsDirectoryManager] Failed to parse \(url.lastPathComponent): \(error)")
+                    print("[SkillsDirectoryManager] Failed to load skill from \(dirURL.lastPathComponent): \(error)")
                     return nil
                 }
             }
@@ -67,11 +73,37 @@ class SkillsDirectoryManager: ObservableObject {
         }
     }
 
+    private func cleanupLegacyFiles() {
+        let legacyBridge = Self.skillsDirectoryURL.appendingPathComponent("bridge-skill.json")
+        let legacySample = Self.skillsDirectoryURL.appendingPathComponent("sample-skill.json")
+        let fm = FileManager.default
+        if fm.fileExists(atPath: legacyBridge.path) {
+            try? fm.removeItem(at: legacyBridge)
+        }
+        if fm.fileExists(atPath: legacySample.path) {
+            try? fm.removeItem(at: legacySample)
+        }
+    }
+
     private func ensureBridgeSkillExists() {
-        let bridgeURL = Self.skillsDirectoryURL.appendingPathComponent("bridge-skill.json")
-        guard !FileManager.default.fileExists(atPath: bridgeURL.path) else { return }
-        if let bundledURL = Bundle.main.url(forResource: "bridge-skill", withExtension: "json") {
-            try? FileManager.default.copyItem(at: bundledURL, to: bridgeURL)
+        let bridgeDirURL = Self.skillsDirectoryURL.appendingPathComponent("bridge-skill")
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: bridgeDirURL.path) else { return }
+        if let bundledURL = Bundle.main.url(forResource: "bridge-skill", withExtension: nil) {
+            do {
+                try fm.copyItem(at: bundledURL, to: bridgeDirURL)
+            } catch {
+                print("[SkillsDirectoryManager] Failed to copy bridge skill: \(error)")
+            }
+        }
+    }
+
+    private func ensureSampleSkillExists() {
+        let sampleDirURL = Self.skillsDirectoryURL.appendingPathComponent("sample-skill")
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: sampleDirURL.path) else { return }
+        if let bundledURL = Bundle.main.url(forResource: "sample-skill", withExtension: nil) {
+            try? fm.copyItem(at: bundledURL, to: sampleDirURL)
         }
     }
 

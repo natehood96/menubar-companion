@@ -1,7 +1,6 @@
 {
     "name": "Summarize Clipboard",
     "description": "Summarize whatever is currently on the clipboard.",
-    "prompt": "Summarize the following content concisely: {context.clipboard} {extra_instructions}",
     "category": "Productivity",
     "tags": ["clipboard", "summary"],
     "icon": "doc.on.clipboard"

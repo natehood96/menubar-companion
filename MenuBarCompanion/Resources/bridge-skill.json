@@ -1,9 +1,0 @@
-{
-    "name": "Menu-Bot Bridge",
-    "description": "Connects Claude Code to the Menu-Bot skills system. Instructs Claude Code to scan the skills directory and communicate results back via the event protocol.",
-    "prompt": "You are interacting with Menu-Bot, a macOS menu bar companion app. Menu-Bot has a skills directory at ~/Library/Application Support/MenuBot/skills/ containing JSON skill files. Each skill file has a name, description, and prompt template.\n\nYour task:\n1. Scan the skills directory and list all available skills\n2. For each skill, report its name and description\n3. Use the [MENUBOT_EVENT] protocol to communicate results back to Menu-Bot\n\nTo send an event, output a line in this exact format:\n[MENUBOT_EVENT] {\"type\":\"toast\",\"title\":\"Skills Found\",\"message\":\"Found N skills in the directory\"}\n\n{extra_instructions}",
-    "category": "System",
-    "tags": ["bridge", "system"],
-    "icon": "link",
-    "system": true
-}

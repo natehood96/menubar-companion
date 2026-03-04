@@ -1,0 +1,8 @@
+{
+    "name": "Menu-Bot Bridge",
+    "description": "Connects Claude Code to the Menu-Bot skills system. Instructs Claude Code to scan the skills directory and communicate results back via the event protocol.",
+    "category": "System",
+    "tags": ["bridge", "system"],
+    "icon": "link",
+    "system": true
+}

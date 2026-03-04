@@ -137,7 +137,7 @@ Migrate the skill format from single `.json` files to directory-per-skill with `
 
 ## 4. Subtasks
 
-### Task 3.5.1 — Update Skill Model & Loading Logic
+### ✅ Task 3.5.1 — Update Skill Model & Loading Logic
 
 #### User Story
 
@@ -251,7 +251,7 @@ extension Skill {
 
 ---
 
-### Task 3.5.2 — Update SkillsDirectoryManager Scanning
+### ✅ Task 3.5.2 — Update SkillsDirectoryManager Scanning
 
 #### User Story
 
@@ -313,7 +313,7 @@ func scan() {
 
 ---
 
-### Task 3.5.3 — Migrate Bundled Resource Files
+### ✅ Task 3.5.3 — Migrate Bundled Resource Files
 
 #### User Story
 
@@ -397,7 +397,7 @@ Summarize the following content concisely:
 
 ---
 
-### Task 3.5.4 — Update Bridge Skill Placement Logic
+### ✅ Task 3.5.4 — Update Bridge Skill Placement Logic
 
 #### User Story
 
@@ -475,7 +475,7 @@ Call `cleanupLegacyFiles()` from `init()` before `ensureBridgeSkillExists()`.
 
 ---
 
-### Task 3.5.5 — Update PopoverViewModel and Verify End-to-End
+### ✅ Task 3.5.5 — Update PopoverViewModel and Verify End-to-End
 
 #### User Story
 
