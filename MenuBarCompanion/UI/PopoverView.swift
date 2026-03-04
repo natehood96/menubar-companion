@@ -2,12 +2,27 @@ import SwiftUI
 
 struct PopoverView: View {
     @StateObject private var viewModel: PopoverViewModel
+    @State private var navigationPath = NavigationPath()
 
     init(notificationManager: NotificationManager) {
         _viewModel = StateObject(wrappedValue: PopoverViewModel(notificationManager: notificationManager))
     }
 
     var body: some View {
+        NavigationStack(path: $navigationPath) {
+            mainContent
+                .navigationDestination(for: Skill.self) { skill in
+                    SkillDetailView(skill: skill)
+                        .environmentObject(viewModel)
+                }
+        }
+        .frame(width: 480, height: 520)
+        .onAppear {
+            viewModel.rescanSkills()
+        }
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 12) {
             // Header
             HStack {
@@ -21,9 +36,71 @@ struct PopoverView: View {
             }
             .padding(.bottom, 4)
 
+            // Starred Skills
+            if !viewModel.starredSkills.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Starred Skills")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ForEach(viewModel.starredSkills) { skill in
+                        Button {
+                            navigationPath.append(skill)
+                        } label: {
+                            HStack(spacing: 6) {
+                                if let icon = skill.icon {
+                                    Image(systemName: icon)
+                                        .font(.caption)
+                                }
+                                Text(skill.name)
+                                    .font(.subheadline)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } else {
+                HStack {
+                    Text("No starred skills yet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+
+            // All Skills button
+            Button {
+                navigationPath.append("allSkills")
+            } label: {
+                HStack {
+                    Label("All Skills", systemImage: "square.grid.2x2")
+                    Spacer()
+                    Text("\(viewModel.allSkills.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+
             // Input row
             HStack(spacing: 8) {
-                TextField("Enter command…", text: $viewModel.inputText)
+                TextField("Ask or command…", text: $viewModel.inputText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { viewModel.run() }
 
@@ -85,7 +162,12 @@ struct PopoverView: View {
             }
         }
         .padding()
-        .frame(width: 480, height: 520)
+        .navigationDestination(for: String.self) { destination in
+            if destination == "allSkills" {
+                SkillsListView()
+                    .environmentObject(viewModel)
+            }
+        }
     }
 
     @ViewBuilder

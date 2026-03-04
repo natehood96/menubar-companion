@@ -18,6 +18,11 @@
 		AA000009 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012; };
 		AA00000A /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013; };
 		AA00000B /* ToastWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014; };
+		AA00000C /* Skill.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015; };
+		AA00000D /* SkillsDirectoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016; };
+		AA00000E /* SkillsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017; };
+		AA00000F /* SkillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
+		AA000010 /* bridge-skill.json in Resources */ = {isa = PBXBuildFile; fileRef = AB000019; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +40,11 @@
 		AB000012 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		AB000013 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		AB000014 /* ToastWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastWindow.swift; sourceTree = "<group>"; };
+		AB000015 /* Skill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Skill.swift; sourceTree = "<group>"; };
+		AB000016 /* SkillsDirectoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsDirectoryManager.swift; sourceTree = "<group>"; };
+		AB000017 /* SkillsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsListView.swift; sourceTree = "<group>"; };
+		AB000018 /* SkillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillDetailView.swift; sourceTree = "<group>"; };
+		AB000019 /* bridge-skill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bridge-skill.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +72,7 @@
 				AD000003 /* App */,
 				AD000004 /* UI */,
 				AD000005 /* Core */,
+				AD000007 /* Resources */,
 				AB000007 /* Assets.xcassets */,
 				AB000009 /* MenuBarCompanion.entitlements */,
 			);
@@ -85,6 +96,8 @@
 				AB000004 /* PopoverViewModel.swift */,
 				AB000013 /* ToastView.swift */,
 				AB000014 /* ToastWindow.swift */,
+				AB000017 /* SkillsListView.swift */,
+				AB000018 /* SkillDetailView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -96,8 +109,18 @@
 				AB000006 /* EventParser.swift */,
 				AB000011 /* EventModels.swift */,
 				AB000012 /* NotificationManager.swift */,
+				AB000015 /* Skill.swift */,
+				AB000016 /* SkillsDirectoryManager.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		AD000007 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AB000019 /* bridge-skill.json */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		AD000006 /* Products */ = {
@@ -167,6 +190,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000007 /* Assets.xcassets in Resources */,
+				AA000010 /* bridge-skill.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -187,6 +211,10 @@
 				AA000009 /* NotificationManager.swift in Sources */,
 				AA00000A /* ToastView.swift in Sources */,
 				AA00000B /* ToastWindow.swift in Sources */,
+				AA00000C /* Skill.swift in Sources */,
+				AA00000D /* SkillsDirectoryManager.swift in Sources */,
+				AA00000E /* SkillsListView.swift in Sources */,
+				AA00000F /* SkillDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

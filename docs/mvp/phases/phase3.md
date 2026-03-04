@@ -136,7 +136,7 @@ Enable users to drop JSON skill files into a local directory and immediately bro
 
 ## 4. Subtasks
 
-### Task 3.1 — Skill File Format & Data Model
+### ✅ Task 3.1 — Skill File Format & Data Model
 
 #### User Story
 
@@ -242,7 +242,7 @@ extension Skill {
 
 ---
 
-### Task 3.2 — Skills Directory & Runtime Discovery
+### ✅ Task 3.2 — Skills Directory & Runtime Discovery
 
 #### User Story
 
@@ -390,7 +390,7 @@ func ensureBridgeSkillExists() {
 
 ---
 
-### Task 3.3 — Skills Browse & Star UI
+### ✅ Task 3.3 — Skills Browse & Star UI
 
 #### User Story
 
@@ -587,7 +587,7 @@ func setupSkillsManager() {
 
 ---
 
-### Task 3.4 — Skill Execution
+### ✅ Task 3.4 — Skill Execution
 
 #### User Story
 
@@ -641,7 +641,7 @@ This reuses the existing `run()` method and `CommandRunner` pipeline. The skill'
 
 ---
 
-### Task 3.5 — Bridge Skill
+### ✅ Task 3.5 — Bridge Skill
 
 #### User Story
 

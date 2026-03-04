@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @MainActor
 final class PopoverViewModel: ObservableObject {
@@ -6,14 +7,52 @@ final class PopoverViewModel: ObservableObject {
     @Published var output: String = ""
     @Published var isRunning: Bool = false
     @Published var claudeDetected: Bool = false
+    @Published var allSkills: [Skill] = []
+    @Published var starredSkillIDs: Set<String> = []
 
     private var runner: CommandRunner?
     private let notificationManager: NotificationManager
+    private let skillsManager: SkillsDirectoryManager
+    private var cancellables = Set<AnyCancellable>()
 
     init(notificationManager: NotificationManager) {
         self.notificationManager = notificationManager
+        self.skillsManager = SkillsDirectoryManager()
         detectClaude()
+        skillsManager.$skills
+            .receive(on: RunLoop.main)
+            .assign(to: &$allSkills)
     }
+
+    // MARK: - Skills
+
+    var starredSkills: [Skill] {
+        allSkills.filter { starredSkillIDs.contains($0.id) }
+    }
+
+    func isStarred(_ skill: Skill) -> Bool {
+        starredSkillIDs.contains(skill.id)
+    }
+
+    func toggleStar(_ skill: Skill) {
+        if starredSkillIDs.contains(skill.id) {
+            starredSkillIDs.remove(skill.id)
+        } else {
+            starredSkillIDs.insert(skill.id)
+        }
+    }
+
+    func runSkill(_ skill: Skill, extraInstructions: String? = nil) {
+        let assembledPrompt = skill.assemblePrompt(extraInstructions: extraInstructions)
+        inputText = assembledPrompt
+        run()
+    }
+
+    func rescanSkills() {
+        skillsManager.rescanIfNeeded()
+    }
+
+    // MARK: - Command Execution
 
     func run() {
         let trimmed = inputText.trimmingCharacters(in: .whitespaces)
@@ -22,7 +61,6 @@ final class PopoverViewModel: ObservableObject {
         output = ""
         isRunning = true
 
-        // Build the command — swap this to Claude CLI later
         let command = buildCommand(for: trimmed)
 
         runner = CommandRunner(
@@ -57,7 +95,6 @@ final class PopoverViewModel: ObservableObject {
 
     // MARK: - Command Building
 
-    /// Single place to swap in Claude CLI invocation later.
     private func buildCommand(for input: String) -> (executable: String, arguments: [String]) {
         // TODO: When Claude CLI is available, return something like:
         // ("/usr/local/bin/claude", ["--output-format", "stream-json", input])
