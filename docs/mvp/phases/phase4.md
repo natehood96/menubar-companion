@@ -33,7 +33,7 @@
 ## Quick Context for AI Agent
 
 - **What this phase accomplishes:** Adds structured context injection to every CLI run, seeds the app with preinstalled skills on first launch, and enables recurring skill scheduling with notification delivery.
-- **What already exists from previous phases:** Menu bar app with popover (Phase 1), event protocol with toast rendering (Phase 2), skills directory with file format, browse/star/run UI, and skill execution via CommandRunner (Phase 3).
+- **What already exists from previous phases:** Menu bar app with popover (Phase 1), event protocol with toast rendering (Phase 2), skills directory with directory-per-skill format (`skill.json` metadata + `prompt.md` template), browse/star/run UI, and skill execution via CommandRunner (Phase 3 + 3.5).
 - **What future phases depend on this:** Phase 5 (activity log will track scheduled runs; safety confirmations apply to context-sensitive operations).
 
 ---
@@ -46,7 +46,7 @@
 
 **Data flow:**
 1. **Context injection:** On every skill or free-form run, `ContextProvider` collects default context (time, active app) plus any enabled optional context (clipboard, screenshot). This is serialized into a `ContextPayload` and appended to the CLI prompt before `CommandRunner` executes it.
-2. **Preinstalled skills:** On first launch, bundled skill files are copied from the app bundle into `~/Library/Application Support/MenuBot/skills/`. These skills use template variables (`{context.time}`, `{context.active_app}`, etc.) that get substituted at execution time.
+2. **Preinstalled skills:** On first launch, bundled skill directories (each containing `skill.json` + `prompt.md`) are copied from the app bundle into `~/Library/Application Support/MenuBot/skills/`. The `prompt.md` files use template variables (`{context.time}`, `{context.active_app}`, etc.) that get substituted at execution time.
 3. **Scheduling:** `ScheduleManager` persists schedule configs and runs an internal timer. When a schedule fires, the skill executes via `CommandRunner` in the background and delivers results via macOS notification.
 
 **Core entities:** `ContextProvider`, `ContextPayload`, template variable substitution, `ScheduleManager`, `UNUserNotificationCenter` integration.
@@ -63,7 +63,7 @@ Every skill run includes structured context, the app ships with useful preinstal
 
 - Phase 1 complete: menu bar app, popover, CommandRunner, CLI execution
 - Phase 2 complete: event protocol, EventParser, toast rendering
-- Phase 3 complete: skills directory (`~/Library/Application Support/MenuBot/skills/`), `Skill` model with template variables, `SkillsDirectoryManager`, browse/star/run UI, skill execution via `PopoverViewModel`
+- Phase 3 + 3.5 complete: skills directory (`~/Library/Application Support/MenuBot/skills/`) using directory-per-skill format (`skill.json` metadata + `prompt.md` template), `Skill` model with `SkillMetadata` Codable, `SkillsDirectoryManager` scanning subdirectories, browse/star/run UI, skill execution via `PopoverViewModel`
 - App sandbox disabled (required for process execution and file system access)
 
 ### Key Deliverables
@@ -341,57 +341,114 @@ As a new user, I install Menu-Bot and immediately see useful skills (Morning Bri
 
 #### Implementation Steps
 
-1. Create the skill files in the app bundle under `MenuBarCompanion/Resources/PreinstalledSkills/`:
-   - `morning-brief.json`:
+1. Create the skill directories in the app bundle under `MenuBarCompanion/Resources/PreinstalledSkills/`. Each skill is a directory containing `skill.json` (metadata) and `prompt.md` (prompt template):
+
+   - **`morning-brief/skill.json`**:
      ```json
      {
        "name": "Morning Brief",
        "description": "Daily briefing with top news, weather, and your schedule summary.",
        "icon": "sun.rise",
-       "prompt": "You are generating a morning briefing for the user. Current time: {context.time}. The user is currently using {context.active_app}.\n\nProvide a concise morning brief including:\n1. A friendly greeting based on the time of day\n2. Key things to be aware of today\n3. A motivational thought\n\nKeep it concise and actionable. {extra_instructions}",
        "category": "Productivity",
        "suggested_schedule": "daily"
      }
      ```
-   - `create-new-skill.json`:
+
+   - **`morning-brief/prompt.md`**:
+     ```markdown
+     You are generating a morning briefing for the user. Current time: {context.time}. The user is currently using {context.active_app}.
+
+     Provide a concise morning brief including:
+     1. A friendly greeting based on the time of day
+     2. Key things to be aware of today
+     3. A motivational thought
+
+     Keep it concise and actionable.
+
+     {extra_instructions}
+     ```
+
+   - **`create-new-skill/skill.json`**:
      ```json
      {
        "name": "Create New Skill",
-       "description": "Generate a new Menu-Bot skill file and save it to your skills folder.",
+       "description": "Generate a new Menu-Bot skill and save it to your skills folder.",
        "icon": "plus.square",
-       "prompt": "The user wants to create a new Menu-Bot skill. Help them define it.\n\nA skill file is a JSON file with these fields:\n- name (required): Display name\n- description (required): What the skill does\n- prompt (required): The prompt template\n- icon (optional): SF Symbol name\n- category (optional): Category for grouping\n- suggested_schedule (optional): 'daily', 'weekly', etc.\n\nAvailable template variables: {context.time}, {context.active_app}, {context.clipboard}, {context.screenshot}, {extra_instructions}\n\nAsk the user what they want the skill to do, then generate the JSON file. {extra_instructions}",
        "category": "Utilities"
      }
      ```
-   - `find-file.json`:
+
+   - **`create-new-skill/prompt.md`**:
+     ```markdown
+     The user wants to create a new Menu-Bot skill. Help them define it.
+
+     A Menu-Bot skill is a directory containing two files:
+     - `skill.json` — metadata with these fields:
+       - name (required): Display name
+       - description (required): What the skill does
+       - icon (optional): SF Symbol name
+       - category (optional): Category for grouping
+       - suggested_schedule (optional): "daily", "weekly", etc.
+     - `prompt.md` — the prompt template (this file, written in markdown)
+
+     Available template variables for prompt.md:
+     - {context.time} — current time
+     - {context.active_app} — active application name
+     - {context.clipboard} — clipboard contents
+     - {context.screenshot} — screenshot data
+     - {extra_instructions} — user-provided instructions at run time
+
+     The skill directory should be placed in: ~/Library/Application Support/MenuBot/skills/
+
+     Ask the user what they want the skill to do, then generate both files.
+
+     {extra_instructions}
+     ```
+
+   - **`find-file/skill.json`**:
      ```json
      {
        "name": "Find File",
        "description": "Search for files on your Mac by name, type, or content.",
        "icon": "doc.text.magnifyingglass",
-       "prompt": "Help the user find a file on their Mac. Use the 'find' or 'mdfind' command to search.\n\nCurrent time: {context.time}\nActive app: {context.active_app}\n\nThe user is looking for: {extra_instructions}\n\nSearch smartly — use Spotlight (mdfind) for content searches and find for name/path searches. Present results clearly with full paths.",
        "category": "Utilities"
      }
      ```
-2. Optionally create `clean-downloads.json` and `work-mode.json` showcase skills
-3. Add all skill files to the Xcode project target so they're included in the app bundle
+
+   - **`find-file/prompt.md`**:
+     ```markdown
+     Help the user find a file on their Mac. Use the "find" or "mdfind" command to search.
+
+     Current time: {context.time}
+     Active app: {context.active_app}
+
+     The user is looking for: {extra_instructions}
+
+     Search smartly — use Spotlight (mdfind) for content searches and find for name/path searches. Present results clearly with full paths.
+     ```
+
+2. Optionally create `clean-downloads/` and `work-mode/` showcase skill directories
+3. Add all skill directories to the Xcode project target as folder references so they're included in the app bundle
 
 #### Files Created / Modified
 
 | File | Action | Description |
 |------|--------|-------------|
-| `MenuBarCompanion/Resources/PreinstalledSkills/morning-brief.json` | Create | Morning Brief skill file |
-| `MenuBarCompanion/Resources/PreinstalledSkills/create-new-skill.json` | Create | Create New Skill skill file |
-| `MenuBarCompanion/Resources/PreinstalledSkills/find-file.json` | Create | Find File skill file |
-| `MenuBarCompanion/Resources/PreinstalledSkills/clean-downloads.json` | Create | (Optional) Clean Downloads skill |
-| `MenuBarCompanion/Resources/PreinstalledSkills/work-mode.json` | Create | (Optional) Work Mode skill |
+| `MenuBarCompanion/Resources/PreinstalledSkills/morning-brief/skill.json` | Create | Morning Brief metadata |
+| `MenuBarCompanion/Resources/PreinstalledSkills/morning-brief/prompt.md` | Create | Morning Brief prompt template |
+| `MenuBarCompanion/Resources/PreinstalledSkills/create-new-skill/skill.json` | Create | Create New Skill metadata |
+| `MenuBarCompanion/Resources/PreinstalledSkills/create-new-skill/prompt.md` | Create | Create New Skill prompt template |
+| `MenuBarCompanion/Resources/PreinstalledSkills/find-file/skill.json` | Create | Find File metadata |
+| `MenuBarCompanion/Resources/PreinstalledSkills/find-file/prompt.md` | Create | Find File prompt template |
+| `MenuBarCompanion/Resources/PreinstalledSkills/clean-downloads/` | Create | (Optional) Clean Downloads skill directory |
+| `MenuBarCompanion/Resources/PreinstalledSkills/work-mode/` | Create | (Optional) Work Mode skill directory |
 
 #### Acceptance Criteria
 
-- [ ] At least 3 skill files exist: Morning Brief, Create New Skill, Find File
-- [ ] Each skill file is valid JSON matching the `Skill` model from Phase 3
-- [ ] Skill prompts use template variables (`{context.time}`, `{context.active_app}`, `{extra_instructions}`)
-- [ ] Skill files are included in the Xcode target and accessible from the app bundle at runtime
+- [ ] At least 3 skill directories exist: morning-brief, create-new-skill, find-file
+- [ ] Each skill directory contains a valid `skill.json` matching the `SkillMetadata` model and a `prompt.md`
+- [ ] Prompt templates in `prompt.md` use template variables (`{context.time}`, `{context.active_app}`, `{extra_instructions}`)
+- [ ] Skill directories are included in the Xcode target as folder references and accessible from the app bundle at runtime
 
 ---
 
@@ -410,7 +467,7 @@ As the system, I copy bundled preinstalled skills into the user's skills directo
        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 
        if seededVersion == nil {
-           // First run — copy all bundled skills
+           // First run — copy all bundled skill directories
            copyBundledSkills()
            UserDefaults.standard.set(currentVersion, forKey: "seededSkillsVersion")
        } else if seededVersion != currentVersion {
@@ -421,14 +478,46 @@ As the system, I copy bundled preinstalled skills into the user's skills directo
    }
    ```
 2. `copyBundledSkills(overwrite:)`:
-   - Enumerate files in `Bundle.main.url(forResource: ..., withExtension: "json", subdirectory: "PreinstalledSkills")`
-   - Copy each to `~/Library/Application Support/MenuBot/skills/`
-   - If `overwrite: false`, skip files that already exist at the destination
+   - Locate the `PreinstalledSkills` subdirectory in the app bundle
+   - Enumerate subdirectories (each is a skill directory containing `skill.json` + `prompt.md`)
+   - Copy each skill directory to `~/Library/Application Support/MenuBot/skills/`
+   - If `overwrite: false`, skip skill directories that already exist at the destination
+   ```swift
+   private func copyBundledSkills(overwrite: Bool = true) {
+       guard let bundledSkillsURL = Bundle.main.url(
+           forResource: "PreinstalledSkills",
+           withExtension: nil
+       ) else { return }
+
+       let fm = FileManager.default
+       guard let skillDirs = try? fm.contentsOfDirectory(
+           at: bundledSkillsURL,
+           includingPropertiesForKeys: [.isDirectoryKey],
+           options: [.skipsHiddenFiles]
+       ) else { return }
+
+       for sourceDir in skillDirs {
+           var isDir: ObjCBool = false
+           guard fm.fileExists(atPath: sourceDir.path, isDirectory: &isDir),
+                 isDir.boolValue else { continue }
+
+           let destDir = SkillsDirectoryManager.skillsDirectoryURL
+               .appendingPathComponent(sourceDir.lastPathComponent)
+
+           if fm.fileExists(atPath: destDir.path) {
+               guard overwrite else { continue }
+               try? fm.removeItem(at: destDir)
+           }
+
+           try? fm.copyItem(at: sourceDir, to: destDir)
+       }
+   }
+   ```
 3. Call `seedPreinstalledSkillsIfNeeded()` during app launch (in `AppDelegate` or `SkillsDirectoryManager.initialize()`)
 4. Write tests:
-   - First run copies all skills
+   - First run copies all skill directories
    - Subsequent launch with same version does not re-copy
-   - Version bump copies only new files (existing files untouched)
+   - Version bump copies only new skill directories (existing directories untouched)
 
 #### Files Created / Modified
 
@@ -440,11 +529,11 @@ As the system, I copy bundled preinstalled skills into the user's skills directo
 
 #### Acceptance Criteria
 
-- [ ] First launch copies all bundled skill files to the skills directory
+- [ ] First launch copies all bundled skill directories to the skills directory
 - [ ] Subsequent launches with the same version do not re-copy or overwrite
-- [ ] App version bump seeds only new skill files without overwriting existing ones
+- [ ] App version bump seeds only new skill directories without overwriting existing ones
 - [ ] Seeded version is tracked in UserDefaults
-- [ ] User-modified files are never overwritten
+- [ ] User-modified skill directories are never overwritten
 
 ---
 
@@ -841,8 +930,8 @@ As a user, I can enable "Launch at Login" so the app starts automatically and my
 
 - **CommandRunner (Phase 1):** Context-augmented prompts are passed through the existing CommandRunner execution path. No protocol changes needed — just longer prompt strings.
 - **EventParser (Phase 2):** Scheduled skill output is routed through EventParser for toast events. Toasts may not render if popover is closed — notifications serve as the fallback.
-- **SkillsDirectoryManager (Phase 3):** First-run seeding writes to the same skills directory that SkillsDirectoryManager watches. The file watcher will pick up seeded files automatically.
-- **Skill model (Phase 3):** Preinstalled skill files must conform to the Skill JSON schema defined in Phase 3A. `suggested_schedule` is a new optional field.
+- **SkillsDirectoryManager (Phase 3 + 3.5):** First-run seeding writes skill directories to the same skills directory that SkillsDirectoryManager watches. The file watcher will pick up seeded directories automatically.
+- **Skill model (Phase 3 + 3.5):** Preinstalled skills use the directory format from Phase 3.5 — each skill is a directory with `skill.json` (conforming to `SkillMetadata` Codable) and `prompt.md`. `suggested_schedule` is a new optional field in `skill.json`.
 - **UserDefaults:** Used for seeding version tracking, context toggle persistence, and Launch at Login state.
 - **macOS APIs:** NSWorkspace (active app, sleep/wake), NSPasteboard (clipboard), CGWindowListCreateImage (screenshot), UNUserNotificationCenter (notifications), SMAppService (Login Items), CGPreflightScreenCaptureAccess (permissions).
 
@@ -854,7 +943,7 @@ As a user, I can enable "Launch at Login" so the app starts automatically and my
 
 - `ContextProviderTests`: default context returns time and app name; serialization format matches spec
 - `TemplateEngineTests`: all variable types substituted; missing vars produce placeholders; unrecognized vars stripped
-- `SkillSeederTests`: first-run copies files; re-run skips existing; version bump adds new only
+- `SkillSeederTests`: first-run copies skill directories; re-run skips existing; version bump adds new only
 - `ScheduleManagerTests`: CRUD operations; persistence round-trip; `shouldFire` logic with various dates
 
 ### During Implementation: Build Against Tests
@@ -892,8 +981,8 @@ No backward compatibility concerns — this phase adds new systems (context, see
 - [ ] **Build verification:** Project compiles with zero errors and zero warnings related to Phase 4 code
 - [ ] **Context test:** Run a free-form command → verify the output CLI invocation includes `--- CONTEXT ---` block with current time and active app
 - [ ] **Optional context test:** Enable clipboard toggle → copy text → run skill → verify clipboard appears in context block
-- [ ] **Seeding test:** Delete `~/Library/Application Support/MenuBot/skills/` → relaunch app → verify 3+ skill files appear
-- [ ] **Template test:** Run Morning Brief → verify `{context.time}` and `{context.active_app}` are replaced with actual values in the CLI call
+- [ ] **Seeding test:** Delete `~/Library/Application Support/MenuBot/skills/` → relaunch app → verify 3+ skill directories appear (each with `skill.json` + `prompt.md`)
+- [ ] **Template test:** Run Morning Brief → verify `{context.time}` and `{context.active_app}` are replaced with actual values from the `prompt.md` template in the CLI call
 - [ ] **Schedule test:** Schedule Morning Brief for 1 minute from now → wait → verify it executes and notification appears
 - [ ] **Permission test:** Revoke Screen Recording permission → enable screenshot toggle → run skill → verify graceful degradation (no crash, screenshot not included)
 - [ ] **Persistence test:** Set schedules and toggles → quit and relaunch → verify all settings preserved
