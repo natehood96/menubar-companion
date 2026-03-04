@@ -115,7 +115,7 @@ Replace the placeholder terminal icon with a custom friendly blob character temp
 
 ## 4. Subtasks
 
-### Task 1.1 — Design or Source the Blob Character Icon
+### ✅ Task 1.1 — Design or Source the Blob Character Icon
 
 #### User Story
 
@@ -151,7 +151,7 @@ As a user, I want to see a friendly, approachable blob character in my menu bar 
 
 ---
 
-### Task 1.2 — Render Icon as Monochrome Template Image at Correct Sizes
+### ✅ Task 1.2 — Render Icon as Monochrome Template Image at Correct Sizes
 
 #### User Story
 
@@ -187,7 +187,7 @@ As a macOS user, I want the menu bar icon to automatically adapt to light and da
 
 ---
 
-### Task 1.3 — Add Icon Assets to Assets.xcassets as Template Image Set
+### ✅ Task 1.3 — Add Icon Assets to Assets.xcassets as Template Image Set
 
 #### User Story
 
@@ -243,7 +243,7 @@ As a developer building the app, I need the blob icon properly registered in the
 
 ---
 
-### Task 1.4 — Update AppDelegate to Load the New Blob Icon
+### ✅ Task 1.4 — Update AppDelegate to Load the New Blob Icon
 
 #### User Story
 
@@ -301,7 +301,7 @@ Image("MenuBarIcon")
 
 ---
 
-### Task 1.5 — Verify LSUIElement Behavior
+### ✅ Task 1.5 — Verify LSUIElement Behavior
 
 #### User Story
 
@@ -336,7 +336,7 @@ As a user, I expect this to be a lightweight menu bar utility — it should neve
 
 ---
 
-### Task 1.6 — Verify Icon Renders Correctly in Light and Dark Mode
+### ✅ Task 1.6 — Verify Icon Renders Correctly in Light and Dark Mode
 
 #### User Story
 

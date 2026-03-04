@@ -7,7 +7,9 @@ struct PopoverView: View {
         VStack(spacing: 12) {
             // Header
             HStack {
-                Image(systemName: "terminal")
+                Image("MenuBarIcon")
+                    .resizable()
+                    .frame(width: 18, height: 18)
                 Text("MenuBar Companion")
                     .font(.headline)
                 Spacer()
