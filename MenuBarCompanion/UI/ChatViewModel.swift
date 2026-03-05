@@ -16,6 +16,16 @@ final class ChatViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var claudePath: String?
 
+    // MARK: - [SAY] Filtering
+
+    /// Line buffer for streaming deltas — accumulates characters until we can
+    /// determine whether a line starts with "[SAY] " (user-facing) or not (internal).
+    private var lineBuffer = ""
+    /// Whether the current line being streamed has been confirmed as user-facing.
+    private var currentLineIsUserFacing = false
+    /// The prefix that marks a line as user-facing output.
+    private static let sayPrefix = "[SAY] "
+
     init(notificationManager: NotificationManager) {
         self.notificationManager = notificationManager
         self.skillsManager = SkillsDirectoryManager()
@@ -69,6 +79,10 @@ final class ChatViewModel: ObservableObject {
         let assistantMessage = ChatMessage(role: .assistant, content: "", isStreaming: true)
         messages.append(assistantMessage)
         isRunning = true
+
+        // Reset [SAY] filter state for new run
+        lineBuffer = ""
+        currentLineIsUserFacing = false
 
         let command = buildCommand(for: trimmed)
 
@@ -152,7 +166,7 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
-        // Fallback: plain text mode (shell commands)
+        // Fallback: plain text mode (shell commands) — no [SAY] filtering
         if let json = EventParser.extractPayload(from: line) {
             if let event = EventParser.parseEvent(from: json) {
                 notificationManager.handle(event)
@@ -160,7 +174,13 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
-        appendToAssistantMessage(line)
+        // In non-Claude mode, show all output directly (no filtering)
+        guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
+        if messages[messages.count - 1].content.isEmpty {
+            messages[messages.count - 1].content = line
+        } else {
+            messages[messages.count - 1].content += "\n" + line
+        }
     }
 
     private func handleStreamJsonLine(_ line: String) {
@@ -171,11 +191,12 @@ final class ChatViewModel: ObservableObject {
 
         switch event {
         case .assistantText(let text):
-            appendToAssistantMessage(text)
+            appendFilteredAssistantText(text)
         case .assistantDelta(let text):
-            streamDeltaToAssistantMessage(text)
-        case .toolUse(let name):
-            appendToAssistantMessage("[using \(name)...]")
+            streamFilteredDelta(text)
+        case .toolUse:
+            // Internal — don't show tool names to the user
+            break
         case .toolResult(let output):
             // Check for MenuBot events inside tool output
             for resultLine in output.components(separatedBy: "\n") {
@@ -191,33 +212,96 @@ final class ChatViewModel: ObservableObject {
         case .done:
             break // finishRun handles completion
         case .ignored:
-            // Show non-JSON lines (likely stderr error messages) to the user
-            if !trimmed.starts(with: "{") {
-                appendToAssistantMessage(trimmed)
+            // Don't show raw stderr/non-JSON lines — they're internal
+            break
+        }
+    }
+
+    // MARK: - [SAY] Filtered Output
+
+    /// Process streaming deltas through the [SAY] filter.
+    /// Buffers characters line-by-line. Only lines starting with "[SAY] " are displayed.
+    private func streamFilteredDelta(_ text: String) {
+        guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
+
+        for char in text {
+            if char == "\n" {
+                // Line complete
+                if currentLineIsUserFacing {
+                    // Add a newline to separate from the next [SAY] line
+                    messages[messages.count - 1].content += "\n"
+                }
+                lineBuffer = ""
+                currentLineIsUserFacing = false
+            } else {
+                lineBuffer.append(char)
+
+                if currentLineIsUserFacing {
+                    // Already confirmed user-facing — stream directly to UI
+                    messages[messages.count - 1].content += String(char)
+                } else {
+                    // Still checking if this line starts with [SAY]
+                    let prefix = Self.sayPrefix
+                    if lineBuffer.count < prefix.count {
+                        // Too short to decide — check if it could still match
+                        if !prefix.hasPrefix(lineBuffer) {
+                            // Can't possibly be [SAY], skip rest of line
+                            // currentLineIsUserFacing stays false
+                        }
+                    } else if lineBuffer.count == prefix.count {
+                        if lineBuffer == prefix {
+                            // Confirmed [SAY] line — start streaming (prefix itself is not shown)
+                            currentLineIsUserFacing = true
+                        }
+                    }
+                    // If count > prefix.count and not user-facing, silently skip
+                }
             }
         }
     }
 
-    private func streamDeltaToAssistantMessage(_ text: String) {
+    /// Filter a complete assistant text block through [SAY]. Only [SAY]-prefixed lines are shown.
+    private func appendFilteredAssistantText(_ text: String) {
         guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
-        messages[messages.count - 1].content += text
-    }
 
-    private func appendToAssistantMessage(_ text: String) {
-        guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
+        let lines = text.components(separatedBy: "\n")
+        let userFacingLines = lines.compactMap { line -> String? in
+            if line.hasPrefix(Self.sayPrefix) {
+                return String(line.dropFirst(Self.sayPrefix.count))
+            }
+            return nil
+        }
+
+        guard !userFacingLines.isEmpty else { return }
+        let filtered = userFacingLines.joined(separator: "\n")
+
         if messages[messages.count - 1].content.isEmpty {
-            messages[messages.count - 1].content = text
+            messages[messages.count - 1].content = filtered
         } else {
-            messages[messages.count - 1].content += "\n" + text
+            messages[messages.count - 1].content += "\n" + filtered
         }
     }
 
     private func finishRun(exitCode: Int32) {
         isRunning = false
+
+        // Flush any remaining buffered [SAY] content
+        if currentLineIsUserFacing && !lineBuffer.isEmpty {
+            if !messages.isEmpty, messages[messages.count - 1].role == .assistant {
+                // lineBuffer still has the prefix stripped (we streamed chars after [SAY] )
+                // Nothing to flush — chars were streamed live. Just clean up state.
+            }
+        }
+        lineBuffer = ""
+        currentLineIsUserFacing = false
+
         if !messages.isEmpty, messages[messages.count - 1].role == .assistant {
             messages[messages.count - 1].isStreaming = false
+            // Trim trailing newlines from [SAY] line breaks
+            messages[messages.count - 1].content = messages[messages.count - 1].content
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             if messages[messages.count - 1].content.isEmpty {
-                messages[messages.count - 1].content = "[completed with code \(exitCode)]"
+                messages[messages.count - 1].content = exitCode == 0 ? "[done]" : "[error — exit code \(exitCode)]"
             }
         }
         ChatStore.save(messages)
