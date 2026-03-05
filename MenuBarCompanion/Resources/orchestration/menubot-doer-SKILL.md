@@ -46,14 +46,56 @@ Your stdout is redirected to a log file by the orchestrator. The orchestrator mo
 - The orchestrator checks your log file every ~30 seconds, so send `[PROGRESS]` at meaningful milestones to keep it informed.
 - Your `[DONE]` or `[ERROR]` message is how the orchestrator knows you're finished.
 
+## Skills System
+
+MenuBot has a skills library — reusable markdown instructions that teach you how to accomplish specific types of tasks.
+
+### On Startup
+
+**Read the skills index:**
+
+```bash
+cat ~/Library/Application\ Support/MenuBot/skills/skills-index.json
+```
+
+This gives you a JSON array of all available skills with their `id`, `name`, `description`, and `file` (the markdown filename). Know what's available.
+
+### Using Skills
+
+If the orchestrator told you to use a specific skill, or if you see a skill in the index that's relevant to your task:
+
+1. Read the skill's markdown file: `cat ~/Library/Application\ Support/MenuBot/skills/<file>`
+2. Follow the instructions in the skill file to accomplish your task
+
+Skills contain step-by-step instructions, code patterns, setup requirements, and tips. They save you from having to figure things out from scratch.
+
+### When Creating Skills
+
+If you were launched with the `create-skill` skill, follow its instructions carefully. You need to:
+1. Write a new `.md` file in the skills directory
+2. Update `skills-index.json` to register the new skill (append, don't overwrite existing entries)
+
 ## Workflow
 
 1. Read your task assignment (the `-p` prompt you were launched with)
-2. Send `[PROGRESS]` with your initial approach
-3. Do the work using your available tools
-4. Send `[PROGRESS]` updates at meaningful milestones
-5. When done, send `[DONE]` with a concise, actionable summary
-6. If you fail, send `[ERROR]` with what went wrong and what you tried
+2. Read the skills index to see what tools are available to you
+3. If a skill is relevant, read its `.md` file and follow its instructions
+4. Send `[PROGRESS]` with your initial approach
+5. Do the work using your available tools and skills
+6. Send `[PROGRESS]` updates at meaningful milestones
+7. When done, send `[DONE]` with a concise, actionable summary that includes which skills you used (if any) and what approach you took
+8. If you fail, send `[ERROR]` with what went wrong, what approach you took, and what you tried
+
+## Missing Dependencies — Just Fix Them
+
+You have **full permission** to install anything you need. If a tool, package, or dependency is missing, install it and keep going. Do not send `[ASK_USER]` or `[ERROR]` for missing dependencies — just fix them.
+
+- Use `brew install` for CLI tools and `brew install --cask` for apps (e.g., Brave browser)
+- Use `npm install -g` for Node.js packages (e.g., Playwright)
+- Use `pip install` for Python packages
+- If Homebrew itself is missing: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+
+Only report `[ERROR]` if you genuinely cannot fix the problem after trying.
 
 ## Important
 
@@ -61,3 +103,4 @@ Your stdout is redirected to a log file by the orchestrator. The orchestrator mo
 - If you discover related issues, mention them in your `[DONE]` message but don't fix them unless asked.
 - Make reasonable decisions on your own. Only use `[ASK_USER]` when truly blocked.
 - Your session will be killed after completion. Ensure your `[DONE]` message contains everything the orchestrator needs.
+- **Check the skills index before starting work.** An existing skill may save you significant effort.

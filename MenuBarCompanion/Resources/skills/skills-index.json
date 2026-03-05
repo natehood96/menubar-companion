@@ -1,0 +1,26 @@
+[
+  {
+    "id": "browse-web",
+    "name": "Browse Web",
+    "description": "Use Playwright to browse websites, scrape data, fill forms, and interact with web pages.",
+    "icon": "globe",
+    "category": "Tools",
+    "file": "browse-web.md"
+  },
+  {
+    "id": "create-skill",
+    "name": "Create New Skill",
+    "description": "Create a new MenuBot skill by writing its markdown instructions and registering it in the skills index.",
+    "icon": "plus.square",
+    "category": "System",
+    "file": "create-skill.md"
+  },
+  {
+    "id": "summarize-clipboard",
+    "name": "Summarize Clipboard",
+    "description": "Summarize whatever text is currently on the clipboard.",
+    "icon": "doc.on.clipboard",
+    "category": "Productivity",
+    "file": "summarize-clipboard.md"
+  }
+]

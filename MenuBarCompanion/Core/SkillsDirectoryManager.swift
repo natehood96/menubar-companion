@@ -10,21 +10,22 @@ class SkillsDirectoryManager: ObservableObject {
         return appSupport.appendingPathComponent("MenuBot/skills", isDirectory: true)
     }()
 
-    private var directorySource: DispatchSourceFileSystemObject?
-    private var directoryFD: Int32 = -1
+    static var indexFileURL: URL {
+        skillsDirectoryURL.appendingPathComponent("skills-index.json")
+    }
+
+    private var fileSource: DispatchSourceFileSystemObject?
+    private var fileFD: Int32 = -1
 
     init() {
         ensureDirectoryExists()
-        cleanupLegacyFiles()
-        ensureBridgeSkillExists()
-        ensureSampleSkillExists()
         scan()
         startWatching()
     }
 
     deinit {
-        directorySource?.cancel()
-        directorySource = nil
+        fileSource?.cancel()
+        fileSource = nil
     }
 
     // MARK: - Public
@@ -34,32 +35,22 @@ class SkillsDirectoryManager: ObservableObject {
     }
 
     func scan() {
-        let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(
-            at: Self.skillsDirectoryURL,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
+        let indexURL = Self.indexFileURL
+        guard let data = try? Data(contentsOf: indexURL) else {
+            print("[SkillsDirectoryManager] No skills-index.json found")
             skills = []
             return
         }
 
-        let parsed = contents
-            .filter { url in
-                var isDir: ObjCBool = false
-                fm.fileExists(atPath: url.path, isDirectory: &isDir)
-                return isDir.boolValue
-            }
-            .compactMap { dirURL -> Skill? in
-                do {
-                    return try Skill.load(from: dirURL)
-                } catch {
-                    print("[SkillsDirectoryManager] Failed to load skill from \(dirURL.lastPathComponent): \(error)")
-                    return nil
-                }
-            }
-            .filter { $0.system != true }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        guard let entries = try? JSONDecoder().decode([SkillIndexEntry].self, from: data) else {
+            print("[SkillsDirectoryManager] Failed to decode skills-index.json")
+            skills = []
+            return
+        }
+
+        let parsed = entries.compactMap { entry in
+            Skill.load(from: entry, skillsDirectory: Self.skillsDirectoryURL)
+        }
 
         self.skills = parsed
     }
@@ -73,47 +64,14 @@ class SkillsDirectoryManager: ObservableObject {
         }
     }
 
-    private func cleanupLegacyFiles() {
-        let legacyBridge = Self.skillsDirectoryURL.appendingPathComponent("bridge-skill.json")
-        let legacySample = Self.skillsDirectoryURL.appendingPathComponent("sample-skill.json")
-        let fm = FileManager.default
-        if fm.fileExists(atPath: legacyBridge.path) {
-            try? fm.removeItem(at: legacyBridge)
-        }
-        if fm.fileExists(atPath: legacySample.path) {
-            try? fm.removeItem(at: legacySample)
-        }
-    }
-
-    private func ensureBridgeSkillExists() {
-        let bridgeDirURL = Self.skillsDirectoryURL.appendingPathComponent("bridge-skill")
-        let fm = FileManager.default
-        guard !fm.fileExists(atPath: bridgeDirURL.path) else { return }
-        if let bundledURL = Bundle.main.url(forResource: "bridge-skill", withExtension: nil) {
-            do {
-                try fm.copyItem(at: bundledURL, to: bridgeDirURL)
-            } catch {
-                print("[SkillsDirectoryManager] Failed to copy bridge skill: \(error)")
-            }
-        }
-    }
-
-    private func ensureSampleSkillExists() {
-        let sampleDirURL = Self.skillsDirectoryURL.appendingPathComponent("sample-skill")
-        let fm = FileManager.default
-        guard !fm.fileExists(atPath: sampleDirURL.path) else { return }
-        if let bundledURL = Bundle.main.url(forResource: "sample-skill", withExtension: nil) {
-            try? fm.copyItem(at: bundledURL, to: sampleDirURL)
-        }
-    }
-
     private func startWatching() {
+        // Watch the skills directory for changes to skills-index.json or any .md files
         let path = Self.skillsDirectoryURL.path
-        directoryFD = open(path, O_EVTONLY)
-        guard directoryFD >= 0 else { return }
+        fileFD = open(path, O_EVTONLY)
+        guard fileFD >= 0 else { return }
 
         let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: directoryFD,
+            fileDescriptor: fileFD,
             eventMask: [.write, .rename, .delete],
             queue: .main
         )
@@ -121,16 +79,11 @@ class SkillsDirectoryManager: ObservableObject {
             self?.scan()
         }
         source.setCancelHandler { [weak self] in
-            if let fd = self?.directoryFD, fd >= 0 {
+            if let fd = self?.fileFD, fd >= 0 {
                 close(fd)
             }
         }
         source.resume()
-        directorySource = source
-    }
-
-    private func stopWatching() {
-        directorySource?.cancel()
-        directorySource = nil
+        fileSource = source
     }
 }

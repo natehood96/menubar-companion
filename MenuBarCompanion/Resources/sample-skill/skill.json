@@ -1,7 +1,0 @@
-{
-    "name": "Summarize Clipboard",
-    "description": "Summarize whatever is currently on the clipboard.",
-    "category": "Productivity",
-    "tags": ["clipboard", "summary"],
-    "icon": "doc.on.clipboard"
-}

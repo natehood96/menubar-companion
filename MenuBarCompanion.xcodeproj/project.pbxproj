@@ -22,8 +22,7 @@
 		AA00000D /* SkillsDirectoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016; };
 		AA00000E /* SkillsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017; };
 		AA00000F /* SkillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
-		AA000020 /* bridge-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001A; };
-		AA000021 /* sample-skill in Resources */ = {isa = PBXBuildFile; fileRef = AB00001B; };
+		AA000020 /* skills in Resources */ = {isa = PBXBuildFile; fileRef = AB00001A; };
 		AA000030 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030; };
 		AA000031 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000031; };
 		AA000032 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000032; };
@@ -55,8 +54,7 @@
 		AB000016 /* SkillsDirectoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsDirectoryManager.swift; sourceTree = "<group>"; };
 		AB000017 /* SkillsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsListView.swift; sourceTree = "<group>"; };
 		AB000018 /* SkillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillDetailView.swift; sourceTree = "<group>"; };
-		AB00001A /* bridge-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "bridge-skill"; sourceTree = "<group>"; };
-		AB00001B /* sample-skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "sample-skill"; sourceTree = "<group>"; };
+		AB00001A /* skills */ = {isa = PBXFileReference; lastKnownFileType = folder; path = skills; sourceTree = "<group>"; };
 		AB000030 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		AB000031 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		AB000032 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
@@ -146,8 +144,7 @@
 		AD000007 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				AB00001A /* bridge-skill */,
-				AB00001B /* sample-skill */,
+				AB00001A /* skills */,
 				AD000008 /* orchestration */,
 			);
 			path = Resources;
@@ -231,8 +228,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000007 /* Assets.xcassets in Resources */,
-				AA000020 /* bridge-skill in Resources */,
-				AA000021 /* sample-skill in Resources */,
+				AA000020 /* skills in Resources */,
 				AA000041 /* protocol.md in Resources */,
 				AA000042 /* output-rules.md in Resources */,
 				AA000043 /* menubot-orchestrator-SKILL.md in Resources */,

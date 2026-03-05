@@ -1,43 +1,29 @@
 import Foundation
 
 struct Skill: Identifiable, Equatable {
-    // Metadata (from skill.json)
+    let id: String
     let name: String
     let description: String
     let category: String?
-    let tags: [String]?
     let icon: String?
-    let suggestedSchedule: String?
-    let requiredPermissions: [String]?
-    let system: Bool?
+    let file: String
 
-    // Prompt template (from prompt.md)
+    // Prompt template (from .md file)
     var prompt: String
 
-    // Runtime properties
-    var id: String { directoryName ?? name }
-    var directoryName: String?
+    // Runtime
     var isStarred: Bool = false
 }
 
-// MARK: - JSON Metadata Decoding
+// MARK: - JSON Index Entry
 
-struct SkillMetadata: Codable {
+struct SkillIndexEntry: Codable {
+    let id: String
     let name: String
     let description: String
-    let category: String?
-    let tags: [String]?
     let icon: String?
-    let suggestedSchedule: String?
-    let requiredPermissions: [String]?
-    let system: Bool?
-
-    enum CodingKeys: String, CodingKey {
-        case name, description, category, tags, icon
-        case suggestedSchedule = "suggested_schedule"
-        case requiredPermissions = "required_permissions"
-        case system
-    }
+    let category: String?
+    let file: String
 }
 
 // MARK: - Hashable (needed for NavigationStack destination)
@@ -58,7 +44,6 @@ extension Skill {
         } else {
             result = result.replacingOccurrences(of: "{extra_instructions}", with: "")
         }
-        // Strip unused context variables (Phase 4 will populate these)
         result = result.replacingOccurrences(of: "{context.screenshot}", with: "")
         result = result.replacingOccurrences(of: "{context.clipboard}", with: "")
         result = result.replacingOccurrences(of: "{context.active_app}", with: "")
@@ -66,31 +51,25 @@ extension Skill {
     }
 }
 
-// MARK: - Directory Loading
+// MARK: - Loading from Index
 
 extension Skill {
-    /// Load a skill from a directory containing skill.json and prompt.md
-    static func load(from directoryURL: URL) throws -> Skill {
-        let metadataURL = directoryURL.appendingPathComponent("skill.json")
-        let promptURL = directoryURL.appendingPathComponent("prompt.md")
+    /// Load a skill from an index entry, reading the prompt from the .md file in the skills directory
+    static func load(from entry: SkillIndexEntry, skillsDirectory: URL) -> Skill? {
+        let promptURL = skillsDirectory.appendingPathComponent(entry.file)
+        guard let prompt = try? String(contentsOf: promptURL, encoding: .utf8) else {
+            print("[Skill] Failed to read prompt file: \(entry.file)")
+            return nil
+        }
 
-        let metadataData = try Data(contentsOf: metadataURL)
-        let metadata = try JSONDecoder().decode(SkillMetadata.self, from: metadataData)
-
-        let prompt = try String(contentsOf: promptURL, encoding: .utf8)
-
-        var skill = Skill(
-            name: metadata.name,
-            description: metadata.description,
-            category: metadata.category,
-            tags: metadata.tags,
-            icon: metadata.icon,
-            suggestedSchedule: metadata.suggestedSchedule,
-            requiredPermissions: metadata.requiredPermissions,
-            system: metadata.system,
+        return Skill(
+            id: entry.id,
+            name: entry.name,
+            description: entry.description,
+            category: entry.category,
+            icon: entry.icon,
+            file: entry.file,
             prompt: prompt
         )
-        skill.directoryName = directoryURL.lastPathComponent
-        return skill
     }
 }
