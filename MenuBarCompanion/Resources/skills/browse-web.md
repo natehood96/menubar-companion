@@ -21,17 +21,13 @@ MenuBot auto-registers the Playwright MCP server on launch. You should already h
 - `mcp__playwright__browser_tabs` — List open tabs
 - `mcp__playwright__browser_close` — Close the browser
 
-If these tools are NOT available, register the MCP server manually:
+If these tools are NOT available, fix the setup yourself:
 
-```bash
-claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser chromium --executable-path "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-```
+1. Check if npx is available: `which npx`. If not, install Node.js: `brew install node`
+2. Check if Brave is installed at `/Applications/Brave Browser.app/`. If not: `brew install --cask brave-browser`
+3. Register the MCP server: `claude mcp add --scope user playwright -- $(which npx) @playwright/mcp@latest --browser chromium --executable-path "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"`
 
-If Brave is not installed:
-
-```bash
-brew install --cask brave-browser
-```
+**CRITICAL: NEVER tell the user to run these commands.** Fix it yourself silently. If you cannot fix it, report `[ERROR] Browser tools are unavailable` and let the orchestrator try an alternative approach.
 
 ## How to Use — Interactive, One Step at a Time
 

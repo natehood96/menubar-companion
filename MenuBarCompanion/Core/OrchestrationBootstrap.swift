@@ -141,7 +141,7 @@ enum OrchestrationBootstrap {
                 .appendingPathComponent(".nvm/versions/node")
             if let versions = try? FileManager.default.contentsOfDirectory(atPath: nvmBase.path),
                !versions.isEmpty {
-                let sorted = versions.sorted { $0.compare($1, options: .numeric) > .orderedSame }
+                let sorted = versions.sorted { $0.compare($1, options: .numeric) == .orderedDescending }
                 for version in sorted {
                     let candidate = nvmBase
                         .appendingPathComponent(version)
@@ -188,7 +188,14 @@ enum OrchestrationBootstrap {
             let output = String(data: checkPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
             if output.contains("playwright") {
                 print("[OrchestrationBootstrap] Playwright MCP already registered")
-                return
+                // Verify it actually works
+                if verifyPlaywrightMCP(npxPath: npxPath) {
+                    print("[OrchestrationBootstrap] Playwright MCP verified working")
+                    return
+                }
+                print("[OrchestrationBootstrap] Playwright MCP registered but verification failed — re-registering")
+                // Remove and re-register
+                removePlaywrightMCP(claudePath: claudePath)
             }
         } catch {
             print("[OrchestrationBootstrap] Could not check MCP list: \(error)")
@@ -213,12 +220,94 @@ enum OrchestrationBootstrap {
             process.waitUntilExit()
             if process.terminationStatus == 0 {
                 print("[OrchestrationBootstrap] Registered Playwright MCP server with Brave")
+                if verifyPlaywrightMCP(npxPath: npxPath) {
+                    print("[OrchestrationBootstrap] Playwright MCP verified working after registration")
+                } else {
+                    print("[OrchestrationBootstrap] Playwright MCP registered but still failing verification — will attempt self-heal via doer on first use")
+                    writeDependencyIssue(tool: "playwright-mcp", error: "MCP server registered but npx process fails to start. Likely issue with npx cache, node version, or Playwright installation.")
+                }
             } else {
                 let stderr = String(data: (process.standardError as! Pipe).fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
                 print("[OrchestrationBootstrap] Failed to register Playwright MCP: \(stderr)")
+                writeDependencyIssue(tool: "playwright-mcp", error: "claude mcp add failed: \(stderr)")
             }
         } catch {
             print("[OrchestrationBootstrap] Failed to run claude mcp add: \(error)")
+            writeDependencyIssue(tool: "playwright-mcp", error: "Process launch failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Verify the Playwright MCP server can actually start by launching npx and checking it responds.
+    private static func verifyPlaywrightMCP(npxPath: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: npxPath)
+        process.arguments = ["@playwright/mcp@latest", "--help"]
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+
+        do {
+            try process.run()
+            // Give it 15 seconds to respond
+            let deadline = Date().addingTimeInterval(15)
+            while process.isRunning && Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+            if process.isRunning {
+                process.terminate()
+                print("[OrchestrationBootstrap] Playwright MCP verification timed out")
+                return false
+            }
+            let _ = outPipe.fileHandleForReading.readDataToEndOfFile()
+            let stderrData = errPipe.fileHandleForReading.readDataToEndOfFile()
+            let success = process.terminationStatus == 0
+            if !success {
+                let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+                print("[OrchestrationBootstrap] Playwright MCP verification failed (exit \(process.terminationStatus)): \(stderr)")
+            }
+            return success
+        } catch {
+            print("[OrchestrationBootstrap] Playwright MCP verification error: \(error)")
+            return false
+        }
+    }
+
+    /// Remove the Playwright MCP registration so it can be re-registered cleanly.
+    private static func removePlaywrightMCP(claudePath: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: claudePath)
+        process.arguments = ["mcp", "remove", "--scope", "user", "playwright"]
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            print("[OrchestrationBootstrap] Removed Playwright MCP registration (exit \(process.terminationStatus))")
+        } catch {
+            print("[OrchestrationBootstrap] Failed to remove Playwright MCP: \(error)")
+        }
+    }
+
+    /// Write a dependency issue file that the orchestrator skill can read to know what needs self-healing.
+    private static func writeDependencyIssue(tool: String, error: String) {
+        let fm = FileManager.default
+        let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let menubotDir = appSupport.appendingPathComponent("MenuBot", isDirectory: true)
+        let issueFile = menubotDir.appendingPathComponent("dependency-issues.json")
+
+        var issues: [[String: String]] = []
+        if let data = try? Data(contentsOf: issueFile),
+           let existing = try? JSONSerialization.jsonObject(with: data) as? [[String: String]] {
+            issues = existing
+        }
+
+        // Replace existing entry for this tool or append
+        issues.removeAll { $0["tool"] == tool }
+        issues.append(["tool": tool, "error": error, "timestamp": ISO8601DateFormatter().string(from: Date())])
+
+        if let data = try? JSONSerialization.data(withJSONObject: issues, options: .prettyPrinted) {
+            try? data.write(to: issueFile, options: .atomic)
         }
     }
 
