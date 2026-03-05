@@ -7,6 +7,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notificationManager: NotificationManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Install orchestration skills and protocol files
+        OrchestrationBootstrap.install()
+
         // Hide dock icon (menu bar only)
         NSApp.setActivationPolicy(.accessory)
 

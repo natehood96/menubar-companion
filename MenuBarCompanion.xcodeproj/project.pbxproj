@@ -27,6 +27,13 @@
 		AA000030 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030; };
 		AA000031 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000031; };
 		AA000032 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000032; };
+		AA000033 /* ClaudeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000033; };
+		AA000034 /* StreamJsonParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000034; };
+		AA000040 /* OrchestrationBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000040; };
+		AA000041 /* protocol.md in Resources */ = {isa = PBXBuildFile; fileRef = AB000041; };
+		AA000042 /* output-rules.md in Resources */ = {isa = PBXBuildFile; fileRef = AB000042; };
+		AA000043 /* menubot-orchestrator-SKILL.md in Resources */ = {isa = PBXBuildFile; fileRef = AB000043; };
+		AA000044 /* menubot-doer-SKILL.md in Resources */ = {isa = PBXBuildFile; fileRef = AB000044; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +60,13 @@
 		AB000030 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		AB000031 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		AB000032 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
+		AB000033 /* ClaudeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDetector.swift; sourceTree = "<group>"; };
+		AB000034 /* StreamJsonParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJsonParser.swift; sourceTree = "<group>"; };
+		AB000040 /* OrchestrationBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrchestrationBootstrap.swift; sourceTree = "<group>"; };
+		AB000041 /* protocol.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = protocol.md; sourceTree = "<group>"; };
+		AB000042 /* output-rules.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "output-rules.md"; sourceTree = "<group>"; };
+		AB000043 /* menubot-orchestrator-SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "menubot-orchestrator-SKILL.md"; sourceTree = "<group>"; };
+		AB000044 /* menubot-doer-SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "menubot-doer-SKILL.md"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +136,9 @@
 				AB000015 /* Skill.swift */,
 				AB000016 /* SkillsDirectoryManager.swift */,
 				AB000030 /* ChatMessage.swift */,
+				AB000033 /* ClaudeDetector.swift */,
+				AB000034 /* StreamJsonParser.swift */,
+				AB000040 /* OrchestrationBootstrap.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -131,8 +148,20 @@
 			children = (
 				AB00001A /* bridge-skill */,
 				AB00001B /* sample-skill */,
+				AD000008 /* orchestration */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		AD000008 /* orchestration */ = {
+			isa = PBXGroup;
+			children = (
+				AB000041 /* protocol.md */,
+				AB000042 /* output-rules.md */,
+				AB000043 /* menubot-orchestrator-SKILL.md */,
+				AB000044 /* menubot-doer-SKILL.md */,
+			);
+			path = orchestration;
 			sourceTree = "<group>";
 		};
 		AD000006 /* Products */ = {
@@ -204,6 +233,10 @@
 				AA000007 /* Assets.xcassets in Resources */,
 				AA000020 /* bridge-skill in Resources */,
 				AA000021 /* sample-skill in Resources */,
+				AA000041 /* protocol.md in Resources */,
+				AA000042 /* output-rules.md in Resources */,
+				AA000043 /* menubot-orchestrator-SKILL.md in Resources */,
+				AA000044 /* menubot-doer-SKILL.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -231,6 +264,9 @@
 				AA000030 /* ChatMessage.swift in Sources */,
 				AA000031 /* ChatViewModel.swift in Sources */,
 				AA000032 /* ChatBubbleView.swift in Sources */,
+				AA000033 /* ClaudeDetector.swift in Sources */,
+				AA000034 /* StreamJsonParser.swift in Sources */,
+				AA000040 /* OrchestrationBootstrap.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

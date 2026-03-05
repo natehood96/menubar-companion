@@ -14,6 +14,7 @@ final class ChatViewModel: ObservableObject {
     private let notificationManager: NotificationManager
     private let skillsManager: SkillsDirectoryManager
     private var cancellables = Set<AnyCancellable>()
+    private var claudePath: String?
 
     init(notificationManager: NotificationManager) {
         self.notificationManager = notificationManager
@@ -113,38 +114,45 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Command Building
 
     private func buildCommand(for input: String) -> (executable: String, arguments: [String]) {
+        if let claudePath {
+            return (claudePath, [
+                "--dangerously-skip-permissions",
+                "--permission-mode", "bypassPermissions",
+                "--output-format", "stream-json",
+                "--verbose",
+                "-p", "/menubot-orchestrator The claude binary is at: \(claudePath). Use this full path when launching doers. \(input)"
+            ])
+        }
         return ("/bin/sh", ["-c", input])
     }
 
     // MARK: - Claude Detection
 
     private func detectClaude() {
-        Task.detached {
-            let detected = await Self.checkClaudeCLI()
-            await MainActor.run {
-                self.claudeDetected = detected
+        print("[ChatViewModel] detectClaude() called")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let path = ClaudeDetector.resolve()
+            print("[ChatViewModel] ClaudeDetector returned: \(path ?? "nil")")
+            DispatchQueue.main.async {
+                self?.claudePath = path
+                self?.claudeDetected = path != nil
+                print("[ChatViewModel] claudeDetected = \(path != nil)")
             }
-        }
-    }
-
-    private static func checkClaudeCLI() async -> Bool {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["claude"]
-        process.standardOutput = Pipe()
-        process.standardError = Pipe()
-        do {
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus == 0
-        } catch {
-            return false
         }
     }
 
     // MARK: - Event Handling
 
     private func handleOutputLine(_ line: String) {
+        print("[Output] \(line)")
+
+        // When Claude CLI is active, output is NDJSON (stream-json format)
+        if claudePath != nil {
+            handleStreamJsonLine(line)
+            return
+        }
+
+        // Fallback: plain text mode (shell commands)
         if let json = EventParser.extractPayload(from: line) {
             if let event = EventParser.parseEvent(from: json) {
                 notificationManager.handle(event)
@@ -152,12 +160,55 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
-        // Append to the current assistant message
+        appendToAssistantMessage(line)
+    }
+
+    private func handleStreamJsonLine(_ line: String) {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let event = StreamJsonParser.parse(line: trimmed)
+
+        switch event {
+        case .assistantText(let text):
+            appendToAssistantMessage(text)
+        case .assistantDelta(let text):
+            streamDeltaToAssistantMessage(text)
+        case .toolUse(let name):
+            appendToAssistantMessage("[using \(name)...]")
+        case .toolResult(let output):
+            // Check for MenuBot events inside tool output
+            for resultLine in output.components(separatedBy: "\n") {
+                if let payload = EventParser.extractPayload(from: resultLine),
+                   let event = EventParser.parseEvent(from: payload) {
+                    notificationManager.handle(event)
+                }
+            }
+        case .menubotEvent(let payload):
+            if let event = EventParser.parseEvent(from: payload) {
+                notificationManager.handle(event)
+            }
+        case .done:
+            break // finishRun handles completion
+        case .ignored:
+            // Show non-JSON lines (likely stderr error messages) to the user
+            if !trimmed.starts(with: "{") {
+                appendToAssistantMessage(trimmed)
+            }
+        }
+    }
+
+    private func streamDeltaToAssistantMessage(_ text: String) {
+        guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
+        messages[messages.count - 1].content += text
+    }
+
+    private func appendToAssistantMessage(_ text: String) {
         guard !messages.isEmpty, messages[messages.count - 1].role == .assistant else { return }
         if messages[messages.count - 1].content.isEmpty {
-            messages[messages.count - 1].content = line
+            messages[messages.count - 1].content = text
         } else {
-            messages[messages.count - 1].content += "\n" + line
+            messages[messages.count - 1].content += "\n" + text
         }
     }
 
